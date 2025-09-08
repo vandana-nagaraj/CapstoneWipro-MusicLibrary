@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Library - Home</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-music"></i>
+                <span>Music Library</span>
+            </div>
+            <div class="nav-links">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#songs" class="nav-link">Songs</a>
+                <a href="#playlists" class="nav-link">Playlists</a>
+                <a href="#adminPanel" id="adminLink" class="nav-link hidden">Admin</a>
+
+                <div id="authLinks" class="auth-links">
+                    <a href="#login" id="loginLink" class="nav-link">Login</a>
+                    <a href="#register" id="registerLink" class="nav-link">Register</a>
+                </div>
+
+                <div id="profileArea" class="profile-area hidden">
+                    <div class="profile" id="profileToggle">
+                        <div class="avatar" id="profileAvatar">U</div>
+                        <div class="profile-info">
+                            <span class="profile-name" id="profileName">User</span>
+                            <span class="profile-role" id="profileRole">User</span>
+                        </div>
+                        <i class="fas fa-chevron-down caret"></i>
+                    </div>
+                    <div class="profile-menu hidden" id="profileMenu">
+                        <a href="#songs" class="menu-item"><i class="fas fa-music"></i> Songs</a>
+                        <a href="#playlists" class="menu-item"><i class="fas fa-list"></i> My Playlists</a>
+                        <div class="menu-divider"></div>
+                        <a href="#" id="menuLogout" class="menu-item danger"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <section id="home" class="hero-section">
+            <div class="hero-content">
+                <h1 id="homeTitle">Welcome to Music Library</h1>
+                <p id="homeSubtitle">Discover, organize, and enjoy your favorite music</p>
+                <div id="homeCta" class="hero-buttons">
+                    <button class="btn btn-primary" onclick="showLogin()">Login</button>
+                    <button class="btn btn-secondary" onclick="showRegister()">Register</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="login" class="auth-section hidden">
+            <div class="auth-container">
+                <h2>Login</h2>
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userType">User Type:</label>
+                        <select id="userType" name="userType" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <p>Don't have an account? <a href="#" onclick="showRegister()">Register here</a></p>
+                </form>
+            </div>
+        </section>
+
+        <section id="register" class="auth-section hidden">
+            <div class="auth-container">
+                <h2>Register</h2>
+                <form id="registerForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="regUsername">Username:</label>
+                        <input type="text" id="regUsername" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regEmail">Email:</label>
+                        <input type="email" id="regEmail" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPhone">Phone Number:</label>
+                        <input type="tel" id="regPhone" name="phoneNumber" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regPassword">Password:</label>
+                        <input type="password" id="regPassword" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="regUserType">User Type:</label>
+                        <select id="regUserType" name="userType" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register</button>
+                    <p>Already have an account? <a href="#" onclick="showLogin()">Login here</a></p>
+                </form>
+            </div>
+        </section>
+
+        <section id="songs" class="songs-section hidden">
+            <div class="section-header">
+                <h2>Music Library</h2>
+                <div class="search-container">
+                    <input type="text" id="songSearch" placeholder="Search songs..." class="search-input">
+                    <button class="btn btn-primary" onclick="searchSongs()">Search</button>
+                </div>
+            </div>
+            <div id="songsList" class="songs-grid">
+            </div>
+        </section>
+
+        <section id="playlists" class="playlists-section hidden">
+            <div class="section-header">
+                <h2>My Playlists</h2>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" id="playlistSearch" placeholder="Search my playlists..." class="search-input" style="min-width:220px;">
+                    <button class="btn btn-primary" onclick="searchMyPlaylists()">Search</button>
+                    <button class="btn btn-primary" onclick="showCreatePlaylist()">Create Playlist</button>
+                </div>
+            </div>
+            <div id="playlistsList" class="playlists-grid">
+            </div>
+        </section>
+
+        <!-- Playlist Detail -->
+        <section id="playlistDetail" class="playlists-section hidden">
+            <div class="section-header">
+                <h2 id="playlistDetailTitle">Playlist</h2>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <button class="btn btn-secondary" onclick="backToPlaylists()">Back</button>
+                    <input type="text" id="playlistSongSearch" placeholder="Search in this playlist..." class="search-input" style="min-width:220px;">
+                    <button class="btn btn-primary" onclick="filterPlaylistSongs()">Search</button>
+                </div>
+            </div>
+            <div id="playlistSongsList" class="songs-grid"></div>
+        </section>
+
+        <!-- Admin Panel -->
+        <section id="adminPanel" class="songs-section hidden">
+            <div class="section-header">
+                <h2>Admin - Manage Songs</h2>
+                <div></div>
+            </div>
+            <div class="auth-container" style="max-width:800px; margin-bottom:1rem;">
+                <h3 style="margin-bottom:1rem;">Create / Edit Song</h3>
+                <form id="songForm" class="auth-form">
+                    <div class="form-group"><label>Name</label><input id="songName" required></div>
+                    <div class="form-group"><label>Singer</label><input id="songSinger" required></div>
+                    <div class="form-group"><label>Music Director</label><input id="songDirector" required></div>
+                    <div class="form-group"><label>Album</label><input id="songAlbum"></div>
+                    <div class="form-group"><label>Release Date</label><input id="songRelease" type="date"></div>
+                    <div class="form-group"><label>Duration (minutes)</label><input id="songDuration" type="number" min="0"></div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn btn-primary" onclick="submitSongForm(event)">Save Song</button>
+                        <button class="btn btn-secondary" onclick="resetSongForm(event)">Reset</button>
+                    </div>
+                    <input type="hidden" id="songId">
+                </form>
+            </div>
+            <div id="adminSongsList" class="songs-grid"></div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 Music Library. All rights reserved.</p>
+    </footer>
+
+    <script src="/script.js"></script>
+</body>
+</html>
+
+
