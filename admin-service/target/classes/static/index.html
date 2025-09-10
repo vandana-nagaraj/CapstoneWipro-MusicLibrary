@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Music Library - Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -146,12 +149,60 @@
                 <h2 id="playlistDetailTitle">Playlist</h2>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
                     <button class="btn btn-secondary" onclick="backToPlaylists()">Back</button>
+                    <button class="btn btn-primary" onclick="showAddSongsModal()"><i class="fas fa-plus"></i> Add Songs</button>
                     <input type="text" id="playlistSongSearch" placeholder="Search in this playlist..." class="search-input" style="min-width:220px;">
                     <button class="btn btn-primary" onclick="filterPlaylistSongs()">Search</button>
                 </div>
             </div>
+            <div id="playlistControls" class="mb-2" style="display:flex; gap:0.5rem; align-items:center;">
+                <button class="btn btn-primary btn-small" onclick="playlistPlay()"><i class="fas fa-play"></i> Play</button>
+                <button class="btn btn-secondary btn-small" onclick="playlistStop()"><i class="fas fa-stop"></i> Stop</button>
+                <button id="repeatBtn" class="btn btn-secondary btn-small" onclick="playlistToggleRepeat()"><i class="fas fa-redo"></i> Repeat: Off</button>
+                <button id="shuffleBtn" class="btn btn-secondary btn-small" onclick="playlistToggleShuffle()"><i class="fas fa-random"></i> Shuffle: Off</button>
+                <span id="nowPlaying" class="mb-1" style="font-weight:600; color:#4a2c1a;"></span>
+            </div>
             <div id="playlistSongsList" class="songs-grid"></div>
         </section>
+
+        <!-- Playlist Picker Modal -->
+        <div id="playlistPicker" class="modal hidden">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h3>Select a playlist</h3>
+                    <button class="modal-close" onclick="closePlaylistPicker()">&times;</button>
+                </div>
+                <div id="playlistPickerBody" class="modal-body"></div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closePlaylistPicker()">Cancel</button>
+                    <button class="btn btn-primary" onclick="confirmAddToPickedPlaylist()">Add</button>
+                </div>
+            </div>
+            <div class="modal-backdrop" onclick="closePlaylistPicker()"></div>
+        </div>
+
+        <!-- Add Songs Modal -->
+        <div id="addSongsModal" class="modal hidden">
+            <div class="modal-dialog" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>Add Songs to Playlist</h3>
+                    <button class="modal-close" onclick="closeAddSongsModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="songSearchInput" placeholder="Search songs..." class="search-input" style="width: 100%;">
+                        <button class="btn btn-primary" onclick="searchAvailableSongs()" style="margin-top: 0.5rem;">Search</button>
+                    </div>
+                    <div id="availableSongsList" class="songs-grid" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Available songs will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeAddSongsModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="addSelectedSongs()">Add Selected Songs</button>
+                </div>
+            </div>
+            <div class="modal-backdrop" onclick="closeAddSongsModal()"></div>
+        </div>
 
         <!-- Admin Panel -->
         <section id="adminPanel" class="songs-section hidden">
@@ -178,6 +229,38 @@
             <div id="adminSongsList" class="songs-grid"></div>
         </section>
     </main>
+
+    <!-- Global Music Player Bar -->
+    <div id="musicPlayer" class="music-player hidden">
+        <div class="player-content">
+            <div class="song-info">
+                <div class="song-title" id="currentSongTitle">No song selected</div>
+                <div class="song-artist" id="currentSongArtist">-</div>
+            </div>
+            <div class="player-controls">
+                <button id="shuffleBtn" class="control-btn" onclick="toggleShuffle()">
+                    <i class="fas fa-random"></i>
+                </button>
+                <button id="playBtn" class="control-btn play-btn" onclick="togglePlay()">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="stopBtn" class="control-btn" onclick="stopSong()">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button id="repeatBtn" class="control-btn" onclick="toggleRepeat()">
+                    <i class="fas fa-redo"></i>
+                </button>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <footer class="footer">
         <p>&copy; 2024 Music Library. All rights reserved.</p>

@@ -96,4 +96,10 @@ public class UserService {
             return false;
         }
     }
+    
+    public List<String> getAllUserEmails() {
+        return userRepository.findAll().stream()
+                .map(User::getEmail)
+                .toList();
+    }
 }

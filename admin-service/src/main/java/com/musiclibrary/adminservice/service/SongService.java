@@ -4,6 +4,7 @@ import com.musiclibrary.adminservice.entity.Song;
 import com.musiclibrary.adminservice.exception.SongNotFoundException;
 import com.musiclibrary.adminservice.repository.SongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -13,8 +14,27 @@ public class SongService {
     @Autowired
     private SongRepository songRepository;
     
+    @Autowired
+    private RestTemplate restTemplate;
+    
+    
     public Song createSong(Song song) {
-        return songRepository.save(song);
+        Song saved = songRepository.save(song);
+        
+        // Send synchronous notification
+        try {
+            String url = "http://notification-service/api/notifications/new-song?songName="
+                    + encode(saved.getName()) + "&singer=" + encode(saved.getSinger()) 
+                    + "&albumName=" + encode(saved.getAlbumName());
+            restTemplate.postForEntity(url, null, Void.class);
+        } catch (Exception ignored) {}
+        
+        return saved;
+    }
+
+    private String encode(String s) {
+        try { return java.net.URLEncoder.encode(s == null ? "" : s, java.nio.charset.StandardCharsets.UTF_8); }
+        catch (Exception e) { return s; }
     }
     
     public Song getSongById(Long id) {

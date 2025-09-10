@@ -11,4 +11,5 @@ public interface PlaylistSongRepository extends JpaRepository<PlaylistSong, Long
     List<PlaylistSong> findBySongId(Long songId);
     void deleteByPlaylistIdAndSongId(Long playlistId, Long songId);
     boolean existsByPlaylistIdAndSongId(Long playlistId, Long songId);
+    int countByPlaylistId(Long playlistId);
 }

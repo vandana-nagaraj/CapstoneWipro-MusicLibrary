@@ -21,6 +21,7 @@
         <module>config-server</module>
         <module>user-service</module>
         <module>admin-service</module>
+        <module>notification-service</module>
         
     </modules>
 

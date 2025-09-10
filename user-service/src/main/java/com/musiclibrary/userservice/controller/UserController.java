@@ -74,4 +74,11 @@ public class UserController {
         boolean isAuthenticated = userService.authenticateUser(email, password);
         return ResponseEntity.ok(isAuthenticated);
     }
+    
+    @GetMapping("/emails")
+    @Operation(summary = "Get all user emails", description = "Retrieve all user email addresses for notification purposes")
+    public ResponseEntity<List<String>> getAllUserEmails() {
+        List<String> emails = userService.getAllUserEmails();
+        return ResponseEntity.ok(emails);
+    }
 }

@@ -26,8 +26,10 @@ public class SecurityConfig {
         http
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers.frameOptions().disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/index.html", "/styles.css", "/script.js", "/favicon.ico").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/auth/login").permitAll()
@@ -35,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/admins").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/admins/authenticate").permitAll()
                         .requestMatchers("/api/songs/visible", "/api/songs/search/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/songs/*").permitAll()  // Allow song validation from user-service
                         .requestMatchers("/api/songs/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
@@ -48,6 +51,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
         config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("file://*");
         config.addAllowedHeader("*");
         config.addAllowedMethod(HttpMethod.GET);
         config.addAllowedMethod(HttpMethod.POST);
