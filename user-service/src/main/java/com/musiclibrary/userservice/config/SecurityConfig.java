@@ -35,9 +35,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers("/api/users/authenticate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/count").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/emails").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/songs/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/playlists/**").authenticated()
+                        .requestMatchers("/api/users/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

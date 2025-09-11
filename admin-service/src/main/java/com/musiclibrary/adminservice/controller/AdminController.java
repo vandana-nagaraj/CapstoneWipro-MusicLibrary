@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admins")
@@ -70,8 +71,18 @@ public class AdminController {
     
     @PostMapping("/authenticate")
     @Operation(summary = "Authenticate admin", description = "Authenticate admin with email and password")
-    public ResponseEntity<Boolean> authenticateAdmin(@RequestParam String email, @RequestParam String password) {
-        boolean isAuthenticated = adminService.authenticateAdmin(email, password);
-        return ResponseEntity.ok(isAuthenticated);
+    public ResponseEntity<?> authenticateAdmin(@RequestParam String email, @RequestParam String password) {
+        try {
+            String token = adminService.authenticateAdminAndGenerateToken(email, password);
+            if (token != null) {
+                return ResponseEntity.ok(Map.of("token", token));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid credentials"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Authentication failed"));
+        }
     }
 }

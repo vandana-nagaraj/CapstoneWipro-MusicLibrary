@@ -4,16 +4,22 @@ import com.musiclibrary.adminservice.entity.Admin;
 import com.musiclibrary.adminservice.exception.AdminNotFoundException;
 import com.musiclibrary.adminservice.exception.DuplicateResourceException;
 import com.musiclibrary.adminservice.repository.AdminRepository;
+import com.musiclibrary.adminservice.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class AdminService {
     
     @Autowired
     private AdminRepository adminRepository;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
     
     public Admin createAdmin(Admin admin) {
         // Check if email already exists
@@ -94,6 +100,24 @@ public class AdminService {
             return admin.getPassword().equals(password);
         } catch (AdminNotFoundException e) {
             return false;
+        }
+    }
+    
+    public String authenticateAdminAndGenerateToken(String email, String password) {
+        try {
+            Admin admin = getAdminByEmail(email);
+            if (admin.getPassword().equals(password)) {
+                // Create JWT claims with admin role
+                Map<String, Object> claims = new HashMap<>();
+                claims.put("roles", List.of("ADMIN"));
+                claims.put("adminLevel", admin.getAdminLevel());
+                claims.put("adminId", admin.getId());
+                
+                return jwtUtil.generateToken(email, claims);
+            }
+            return null;
+        } catch (AdminNotFoundException e) {
+            return null;
         }
     }
 }

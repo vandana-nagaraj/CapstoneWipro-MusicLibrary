@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 <body>
     <!-- Side Navigation -->
@@ -279,28 +280,170 @@
         </div>
 
         <!-- Admin Panel -->
-        <section id="adminPanel" class="songs-section hidden">
-            <div class="section-header">
-                <h2>Admin - Manage Songs</h2>
-                <div></div>
-            </div>
-            <div class="auth-container" style="max-width:800px; margin-bottom:1rem;">
-                <h3 style="margin-bottom:1rem;">Create / Edit Song</h3>
-                <form id="songForm" class="auth-form">
-                    <div class="form-group"><label>Name</label><input id="songName" required></div>
-                    <div class="form-group"><label>Singer</label><input id="songSinger" required></div>
-                    <div class="form-group"><label>Music Director</label><input id="songDirector" required></div>
-                    <div class="form-group"><label>Album</label><input id="songAlbum"></div>
-                    <div class="form-group"><label>Release Date</label><input id="songRelease" type="date"></div>
-                    <div class="form-group"><label>Duration (minutes)</label><input id="songDuration" type="number" min="0"></div>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn btn-primary" onclick="submitSongForm(event)">Save Song</button>
-                        <button class="btn btn-secondary" onclick="resetSongForm(event)">Reset</button>
+        <section id="adminPanel" class="admin-section hidden">
+            <div class="admin-header">
+                <h2><i class="fas fa-cog"></i> Admin Dashboard</h2>
+                <div class="admin-header-right">
+                    <div class="admin-stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalSongs">0</span>
+                        <span class="stat-label">Total Songs</span>
                     </div>
-                    <input type="hidden" id="songId">
-                </form>
+                    <div class="stat-card">
+                        <span class="stat-number" id="visibleSongs">0</span>
+                        <span class="stat-label">Visible Songs</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalUsers">0</span>
+                        <span class="stat-label">Total Users</span>
+                    </div>
+                    </div>
+                    <button class="btn btn-danger" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
             </div>
-            <div id="adminSongsList" class="songs-grid"></div>
+
+            <!-- Admin Tabs -->
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="showAdminTab('songs')">
+                    <i class="fas fa-music"></i> Manage Songs
+                </button>
+                <button class="tab-btn" onclick="showAdminTab('notifications')">
+                    <i class="fas fa-bell"></i> Notifications
+                </button>
+                <button class="tab-btn" onclick="showAdminTab('users')">
+                    <i class="fas fa-users"></i> Users
+                </button>
+            </div>
+
+            <!-- Songs Management Tab -->
+            <div id="adminSongsTab" class="admin-tab-content active">
+                <div class="admin-controls">
+                    <button class="btn btn-primary" onclick="showSongForm()">
+                        <i class="fas fa-plus"></i> Add New Song
+                    </button>
+                    <div class="search-container">
+                        <input type="text" id="adminSongSearch" placeholder="Search songs..." class="search-input">
+                        <button class="btn btn-secondary" onclick="searchAdminSongs()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Song Form Modal -->
+                <div id="songFormModal" class="modal hidden">
+                    <div class="modal-dialog">
+                        <div class="modal-header">
+                            <h3 id="songFormTitle">Add New Song</h3>
+                            <button class="modal-close" onclick="closeSongForm()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="songForm" class="form-grid">
+                                <div class="form-group">
+                                    <label for="songName">Song Name *</label>
+                                    <input type="text" id="songName" name="name" placeholder="Enter song name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="songSinger">Singer *</label>
+                                    <input type="text" id="songSinger" name="singer" placeholder="Enter singer name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="songDirector">Music Director *</label>
+                                    <input type="text" id="songDirector" name="musicDirector" placeholder="Enter music director name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="songAlbum">Album</label>
+                                    <input type="text" id="songAlbum" name="album" placeholder="Enter album name (optional)">
+                                </div>
+                                <div class="form-group">
+                                    <label for="songRelease">Release Date</label>
+                                    <input type="date" id="songRelease" name="releaseDate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="songDuration">Duration (minutes)</label>
+                                    <input type="number" id="songDuration" name="duration" min="0" step="0.1" placeholder="e.g., 3.5">
+                                </div>
+                                <div class="form-group">
+                                    <label for="songGenre">Genre</label>
+                                    <select id="songGenre" name="genre">
+                                        <option value="">Select Genre</option>
+                                        <option value="Pop">Pop</option>
+                                        <option value="Rock">Rock</option>
+                                        <option value="Classical">Classical</option>
+                                        <option value="Jazz">Jazz</option>
+                                        <option value="Hip Hop">Hip Hop</option>
+                                        <option value="Electronic">Electronic</option>
+                                        <option value="Country">Country</option>
+                                        <option value="R&B">R&B</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>
+                                        <input type="checkbox" id="songVisible" name="visible" checked>
+                                        Visible to Users
+                                    </label>
+                                </div>
+                                <input type="hidden" id="songId" name="id">
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeSongForm()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="submitSongForm(event)">
+                                <i class="fas fa-save"></i> Save Song
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="adminSongsList" class="admin-songs-grid"></div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div id="adminNotificationsTab" class="admin-tab-content hidden">
+                <div class="notification-controls">
+                    <h3>Send Notification</h3>
+                    <form id="notificationForm" class="notification-form">
+                        <div class="form-group">
+                            <label for="notificationTitle">Title *</label>
+                            <input type="text" id="notificationTitle" name="title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationMessage">Message *</label>
+                            <textarea id="notificationMessage" name="message" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationType">Type</label>
+                            <select id="notificationType" name="type">
+                                <option value="new_song">New Song Added</option>
+                                <option value="update">System Update</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="general">General</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="sendNotification()">
+                            <i class="fas fa-paper-plane"></i> Send Notification
+                        </button>
+                    </form>
+                </div>
+                <div id="notificationHistory" class="notification-history">
+                    <h3>Recent Notifications</h3>
+                    <div id="notificationsList"></div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="adminUsersTab" class="admin-tab-content hidden">
+                <div class="users-controls">
+                    <div class="search-container">
+                        <input type="text" id="userSearch" placeholder="Search users..." class="search-input">
+                        <button class="btn btn-secondary" onclick="searchUsers()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div id="usersList" class="users-grid"></div>
+            </div>
         </section>
         </main>
     </div> <!-- End of main-content-wrapper -->

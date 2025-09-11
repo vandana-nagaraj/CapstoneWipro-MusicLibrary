@@ -293,7 +293,7 @@ async function handleLogin(e) {
             if (response.ok) {
                 const body = await response.json();
                 authToken = body.token || null;
-                currentUserEmail = loginData.email;
+                currentUserEmail = email;
                 currentUserType = userType;
                 
                 // Log authentication information
@@ -322,23 +322,97 @@ async function handleLogin(e) {
 
 async function handleRegister(e) {
     e.preventDefault();
+    
+    // Reset previous errors
+    document.querySelectorAll('.form-group').forEach(group => {
+        group.classList.remove('error');
+    });
+    
     const formData = new FormData(e.target);
-    const userType = formData.get('userType');
-    const userData = { username: formData.get('username'), email: formData.get('email'), phoneNumber: formData.get('phoneNumber'), password: formData.get('password') };
+    const userType = formData.get('userType') || 'user';
+    
+    // Get and validate form data
+    const username = formData.get('username')?.trim();
+    const email = formData.get('email')?.trim();
+    const password = formData.get('password');
+    const phoneNumber = formData.get('phoneNumber')?.trim().replace(/[^0-9]/g, '');
+    
+    // Basic validation
+    if (!username) {
+        showErrorFor(document.getElementById('regUsername'), 'Username is required');
+        return;
+    }
+    
+    if (!email) {
+        showErrorFor(document.getElementById('regEmail'), 'Email is required');
+        return;
+    }
+    
+    if (!password) {
+        showErrorFor(document.getElementById('regPassword'), 'Password is required');
+        return;
+    }
+    
+    if (!phoneNumber || phoneNumber.length !== 10) {
+        showErrorFor(document.getElementById('regPhone'), 'Phone number must be exactly 10 digits');
+        return;
+    }
+    
+    // Show loading state
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+    
+    // Add adminLevel for admin registration
+    const userData = userType === 'admin' 
+        ? { username, email, phoneNumber, password, adminLevel: "SUPER_ADMIN" }
+        : { username, email, phoneNumber, password };
     showMessage('Registering...', 'success');
     try {
         const apiUrl = userType === 'admin' ? ADMIN_API_BASE_URL : API_BASE_URL;
-        const response = await fetch(`${apiUrl}/api/${userType === 'admin' ? 'admins' : 'users'}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userData) });
+        console.log('Sending registration request to:', `${apiUrl}/api/${userType === 'admin' ? 'admins' : 'users'}`);
+        console.log('Registration data:', userData);
+        
+        const response = await fetch(`${apiUrl}/api/${userType === 'admin' ? 'admins' : 'users'}`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(userData) 
+        });
+        
         if (response.ok) {
             showMessage('Registration successful! Please login.', 'success');
             if (forms.register) { forms.register.reset(); }
             showLogin();
         } else {
             const errorText = await response.text();
-            showMessage(`Registration failed: ${errorText}`, 'error');
+            console.error('Registration failed:', response.status, errorText);
+            
+            // Try to parse as JSON, fallback to text
+            let errorMessage = 'Registration failed';
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorData.error || errorText;
+            } catch (e) {
+                // Handle common 500 errors
+                if (response.status === 500) {
+                    errorMessage = 'Email, username, or phone number already exists. Please use different values.';
+                } else {
+                    errorMessage = errorText || 'Please check your input';
+                }
+            }
+            
+            showMessage(`Registration failed: ${errorMessage}`, 'error');
         }
     } catch (error) {
-        showMessage(`Registration failed! ${error.message}`, 'error');
+        console.error('Registration error:', error);
+        showMessage(`Registration failed: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
     }
 }
 
@@ -1354,9 +1428,6 @@ async function loadAdminSongs() {
                         </div>
                     </div>`).join('')}
             </div>`;
-        } else {
-            throw new Error('Failed to load songs');
-        }
     } catch (error) { 
         console.error('Error loading admin songs:', error);
         list.innerHTML = `
@@ -1381,24 +1452,20 @@ function showSongForm(id) {
         showMessage('Unauthorized: Admin access required', 'error');
         return;
     }
-
-    // Show the form section
-    const formSection = document.getElementById('songFormSection');
-    if (formSection) {
-        formSection.style.display = 'block';
-    }
-
-    // If editing, load the song data
+    
+    const modal = document.getElementById('songFormModal');
+    const form = document.getElementById('songForm');
+    
     if (id) {
-        loadSongForEditing(id);
+        // Edit mode - load existing song
+        editSong(id);
     } else {
-        resetSongForm();
-    }
-
-    // Scroll to the form
-    const formElement = document.getElementById('songForm');
-    if (formElement) {
-        formElement.scrollIntoView({ behavior: 'smooth' });
+        // Create mode - clear form and show modal
+        form.reset();
+        // Ensure visibility checkbox is checked by default for new songs
+        document.getElementById('songVisible').checked = true;
+        document.getElementById('songFormTitle').textContent = 'Add New Song';
+        modal.classList.remove('hidden');
     }
 }
 
@@ -1742,6 +1809,359 @@ function escapeHtml(unsafe) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+// Helper function to show form field errors
+function showErrorFor(inputElement, message) {
+    // Remove existing error
+    const existingError = inputElement.parentNode.querySelector('.error-message');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add error class to form group
+    inputElement.parentNode.classList.add('error');
+    
+    // Create and add error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message';
+    errorDiv.textContent = message;
+    errorDiv.style.color = '#dc3545';
+    errorDiv.style.fontSize = '0.875rem';
+    errorDiv.style.marginTop = '0.25rem';
+    
+    inputElement.parentNode.appendChild(errorDiv);
+    
+    // Focus the input
+    inputElement.focus();
+}
+
+// Admin Panel Functions
+function showAdminTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.admin-tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab content
+    const targetTab = document.getElementById(`admin${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Tab`);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Add active class to clicked tab button
+    event.target.classList.add('active');
+    
+    // Load data for the selected tab
+    switch(tabName) {
+        case 'songs':
+            loadAdminSongs();
+            updateAdminStats();
+            break;
+        case 'notifications':
+            loadNotificationHistory();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+    }
+}
+
+function updateAdminStats() {
+    // Update admin dashboard statistics
+    fetch(`${ADMIN_API_BASE_URL}/api/songs`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(songs => {
+        document.getElementById('totalSongs').textContent = songs.length;
+        document.getElementById('visibleSongs').textContent = songs.filter(s => s.visible).length;
+    })
+    .catch(error => console.error('Error loading stats:', error));
+    
+    // Load user count (you'll need to implement this endpoint)
+    fetch(`${API_BASE_URL}/api/users/count`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('totalUsers').textContent = data.count || 0;
+    })
+    .catch(error => console.error('Error loading user count:', error));
+}
+
+function closeSongForm() {
+    const modal = document.getElementById('songFormModal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function editSong(songId) {
+    // Find the song data from the loaded songs
+    fetch(`${ADMIN_API_BASE_URL}/api/songs/${songId}`, {
+        headers: {
+            'Authorization': `Bearer ${authToken}`
+        }
+    })
+    .then(response => response.json())
+    .then(song => {
+        // Populate the form with song data
+        document.getElementById('songName').value = song.name || '';
+        document.getElementById('songSinger').value = song.singer || '';
+        document.getElementById('songDirector').value = song.musicDirector || '';
+        document.getElementById('songAlbum').value = song.albumName || '';
+        document.getElementById('songRelease').value = song.releaseDate || '';
+        document.getElementById('songDuration').value = song.durationMinutes || '';
+        document.getElementById('songGenre').value = song.genre || '';
+        document.getElementById('songVisible').checked = song.isVisible !== false;
+        document.getElementById('songId').value = songId;
+        
+        // Update modal title
+        document.getElementById('songFormTitle').textContent = 'Edit Song';
+        
+        // Show the modal
+        const modal = document.getElementById('songFormModal');
+        modal.classList.remove('hidden');
+    })
+    .catch(error => {
+        console.error('Error loading song for edit:', error);
+        showMessage('Error loading song details', 'error');
+    });
+}
+
+async function submitSongForm(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('songForm');
+    const formData = new FormData(form);
+    const songId = formData.get('id');
+    const isEdit = songId && songId !== '';
+    
+    // Get form values
+    const songData = {
+        name: formData.get('name'),
+        singer: formData.get('singer'),
+        musicDirector: formData.get('musicDirector'),
+        albumName: formData.get('album') || 'Unknown Album',
+        releaseDate: formData.get('releaseDate') || new Date().toISOString().split('T')[0],
+        durationMinutes: formData.get('duration') ? Math.round(parseFloat(formData.get('duration'))) : null,
+        genre: formData.get('genre') || '',
+        isVisible: formData.get('visible') === 'on'
+    };
+    
+    // Validate required fields
+    if (!songData.name || !songData.singer || !songData.musicDirector) {
+        showMessage('Please fill in all required fields (Song Name, Singer, Music Director)', 'error');
+        return;
+    }
+    
+    try {
+        console.log('Submitting song data:', songData);
+        
+        // Show loading state
+        const submitBtn = document.querySelector('#songFormModal .btn-primary');
+        const originalBtnText = submitBtn ? submitBtn.innerHTML : 'Save Song';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        }
+        
+        const url = isEdit ? `${ADMIN_API_BASE_URL}/api/songs/${songId}` : `${ADMIN_API_BASE_URL}/api/songs`;
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(songData)
+        });
+        
+        if (response.ok) {
+            const savedSong = await response.json();
+            console.log('Song saved successfully:', savedSong);
+            showMessage(isEdit ? 'Song updated successfully!' : 'Song added successfully!', 'success');
+            closeSongForm();
+            form.reset();
+            document.getElementById('songId').value = '';
+            document.getElementById('songFormTitle').textContent = 'Add New Song';
+            // Reload songs list
+            await loadSongs();
+        } else {
+            const errorText = await response.text();
+            console.error('Failed to save song:', response.status, errorText);
+            showMessage(`Failed to save song: ${errorText}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error saving song:', error);
+        showMessage(`Error saving song: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        const submitBtn = document.querySelector('#songFormModal .btn-primary');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Song';
+        }
+    }
+}
+
+function sendNotification() {
+    const form = document.getElementById('notificationForm');
+    const formData = new FormData(form);
+    
+    const notification = {
+        title: formData.get('title'),
+        message: formData.get('message'),
+        type: formData.get('type'),
+        timestamp: new Date().toISOString()
+    };
+    
+    // Send notification via notification service
+    fetch(`${ADMIN_API_BASE_URL}/api/notifications/send`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify(notification),
+        credentials: 'include'
+    })
+    .then(response => {
+        if (response.ok) {
+            showMessage('Notification sent successfully!', 'success');
+            form.reset();
+            loadNotificationHistory();
+        } else {
+            throw new Error('Failed to send notification');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending notification:', error);
+        showMessage('Failed to send notification', 'error');
+    });
+}
+
+function loadNotificationHistory() {
+    fetch(`${ADMIN_API_BASE_URL}/api/notifications/history`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(notifications => {
+        displayNotifications(notifications);
+    })
+    .catch(error => {
+        console.error('Error loading notifications:', error);
+        document.getElementById('notificationsList').innerHTML = '<p>No notifications found</p>';
+    });
+}
+
+function displayNotifications(notifications) {
+    const container = document.getElementById('notificationsList');
+    
+    if (!notifications || notifications.length === 0) {
+        container.innerHTML = '<p>No notifications sent yet</p>';
+        return;
+    }
+    
+    container.innerHTML = notifications.map(notification => `
+        <div class="notification-item">
+            <div class="notification-content">
+                <h4>${escapeHtml(notification.title)}</h4>
+                <p>${escapeHtml(notification.message)}</p>
+                <div class="notification-meta">
+                    Type: ${notification.type} | Sent: ${new Date(notification.timestamp).toLocaleString()}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function loadUsers() {
+    fetch(`${API_BASE_URL}/api/users`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(users => {
+        displayUsers(users);
+    })
+    .catch(error => {
+        console.error('Error loading users:', error);
+        document.getElementById('usersList').innerHTML = '<p>Error loading users</p>';
+    });
+}
+
+function displayUsers(users) {
+    const container = document.getElementById('usersList');
+    
+    if (!users || users.length === 0) {
+        container.innerHTML = '<p>No users found</p>';
+        return;
+    }
+    
+    container.innerHTML = users.map(user => `
+        <div class="user-card">
+            <div class="user-info">
+                <h4>${escapeHtml(user.username)}</h4>
+                <p><i class="fas fa-envelope"></i> ${escapeHtml(user.email)}</p>
+                <p><i class="fas fa-phone"></i> ${escapeHtml(user.phoneNumber || 'N/A')}</p>
+                <p><i class="fas fa-calendar"></i> Joined: ${new Date(user.createdAt || Date.now()).toLocaleDateString()}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function searchUsers() {
+    const searchTerm = document.getElementById('userSearch').value.trim();
+    
+    fetch(`${API_BASE_URL}/api/users/search?q=${encodeURIComponent(searchTerm)}`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+        credentials: 'include'
+    })
+    .then(response => response.json())
+    .then(users => {
+        displayUsers(users);
+    })
+    .catch(error => {
+        console.error('Error searching users:', error);
+        loadUsers(); // Fallback to loading all users
+    });
+}
+
+// Logout function
+function logout() {
+    // Clear all authentication data
+    authToken = null;
+    currentUserEmail = null;
+    currentUserName = null;
+    currentAdminName = null;
+    currentUserType = null;
+    
+    // Clear localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('adminName');
+    
+    // Update UI
+    updateNavbar();
+    
+    // Show success message
+    showMessage('Logged out successfully', 'success');
+    
+    // Redirect to home
+    showSection('home');
+    window.location.hash = '#home';
 }
 
 // Helper function to show a message
