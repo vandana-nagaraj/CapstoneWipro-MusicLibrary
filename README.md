@@ -1,6 +1,6 @@
-# Music Library - Sprint 1
+# Music Library - Microservices Application
 
-A microservices-based music library application built with Spring Boot and Spring Cloud.
+A comprehensive microservices-based music library application built with Spring Boot and Spring Cloud, featuring JWT authentication, role-based access control, and a modern web interface.
 
 ## Architecture
 
@@ -8,38 +8,51 @@ This project follows a microservices architecture with the following services:
 
 1. **Eureka Server** (Port 8761) - Service discovery and registration
 2. **Config Server** (Port 8888) - Centralized configuration management
-3. **User Service** (Port 8081) - User and playlist management
-4. **Admin Service** (Port 8082) - Admin and song management
+3. **User Service** (Port 9002) - User and playlist management with JWT authentication
+4. **Admin Service** (Port 9001) - Admin and song management with JWT authentication
+5. **Notification Service** (Port 9003) - Notification handling (future implementation)
 
-## Features Implemented (Sprint 1)
+## Features Implemented
+
+### Authentication & Security
+- **JWT Authentication**: Secure token-based authentication for both users and admins
+- **Role-Based Access Control**: Admin and user roles with appropriate permissions
+- **Security Configuration**: Protected endpoints with proper authorization
+- **Password Encryption**: Secure password storage using BCrypt
 
 ### Database Schema
-- **User Entity**: User registration and authentication
-- **Admin Entity**: Admin registration and authentication
-- **Song Entity**: Song information with visibility controls
-- **Playlist Entity**: User playlists
+- **User Entity**: User registration and authentication with JWT support
+- **Admin Entity**: Admin registration and authentication with role management
+- **Song Entity**: Song information with visibility controls and admin management
+- **Playlist Entity**: User playlists with full CRUD operations
 - **PlaylistSong Entity**: Many-to-many relationship between playlists and songs
 
 ### Microservices
 - **Eureka Server**: Service discovery for all microservices
 - **Spring Cloud Config**: Centralized configuration management
-- **User Service**: Complete CRUD operations for users and playlists
-- **Admin Service**: Complete CRUD operations for admins and songs
+- **User Service**: Complete CRUD operations for users and playlists with JWT authentication
+- **Admin Service**: Complete CRUD operations for admins and songs with JWT authentication
+- **Notification Service**: Infrastructure ready for future notification features
 
 ### Frontend
-- **HTML/CSS/JavaScript**: Modern, responsive web interface
-- **User Authentication**: Login and registration for both users and admins
-- **Song Browsing**: View and search songs
-- **Playlist Management**: Create and manage playlists
+- **Modern Web Interface**: Responsive HTML/CSS/JavaScript frontend
+- **User Authentication**: Secure login and registration for both users and admins
+- **Admin Dashboard**: Complete song management interface with create, edit, delete functionality
+- **User Dashboard**: Playlist management and song browsing
+- **Song Management**: Admin can add, edit, delete, and toggle song visibility
+- **Search Functionality**: Search songs by name, singer, album, or music director
 
 ## Technology Stack
 
 - **Backend**: Spring Boot 3.2.0, Spring Cloud 2023.0.0
-- **Database**: H2 (in-memory)
+- **Security**: Spring Security with JWT authentication
+- **Database**: H2 (in-memory) with JPA/Hibernate
 - **Service Discovery**: Netflix Eureka
 - **Configuration**: Spring Cloud Config
 - **API Documentation**: Swagger/OpenAPI 3
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Build Tool**: Maven
+- **Java Version**: 17+
 
 ## Getting Started
 
@@ -49,11 +62,14 @@ This project follows a microservices architecture with the following services:
 
 ### Running the Application
 
+**Important**: Start services in the following order to ensure proper service discovery and configuration:
+
 1. **Start Eureka Server**:
    ```bash
    cd eureka-server
    mvn spring-boot:run
    ```
+   Wait for Eureka to fully start before proceeding.
 
 2. **Start Config Server**:
    ```bash
@@ -73,35 +89,47 @@ This project follows a microservices architecture with the following services:
    mvn spring-boot:run
    ```
 
-5. **Open Frontend**:
-   Open `frontend/index.html` in your web browser
+5. **Access the Application**:
+   - Admin Interface: http://localhost:9001
+   - User Interface: http://localhost:9002 (when available)
 
 ### Service URLs
 
 - **Eureka Server**: http://localhost:8761
 - **Config Server**: http://localhost:8888
-- **User Service**: http://localhost:8081
-- **Admin Service**: http://localhost:8082
-- **User Service Swagger**: http://localhost:8081/swagger-ui.html
-- **Admin Service Swagger**: http://localhost:8082/swagger-ui.html
-- **H2 Console (User Service)**: http://localhost:8081/h2-console
-- **H2 Console (Admin Service)**: http://localhost:8082/h2-console
+- **User Service**: http://localhost:9002
+- **Admin Service**: http://localhost:9001
+- **User Service Swagger**: http://localhost:9002/swagger-ui.html
+- **Admin Service Swagger**: http://localhost:9001/swagger-ui.html
+- **H2 Console (User Service)**: http://localhost:9002/h2-console
+- **H2 Console (Admin Service)**: http://localhost:9001/h2-console
+
+### Default Credentials
+
+**Admin Login**:
+- Username: admin
+- Password: admin123
+
+**Test User** (can be created via registration):
+- Any valid email and password combination
 
 ## API Endpoints
 
-### User Service (Port 8081)
+### User Service (Port 9002)
 
-#### Users
-- `POST /api/users` - Create user
+#### Authentication
+- `POST /api/users` - Register new user (public)
+- `POST /api/users/authenticate` - User login with JWT token response
+
+#### Users (JWT Protected)
 - `GET /api/users/{id}` - Get user by ID
-- `GET /api/users/email/{email}` - Get user by email
+- `GET /api/users/email/{email}` - Get user by email (public for admin access)
 - `GET /api/users/username/{username}` - Get user by username
 - `GET /api/users` - Get all users
 - `PUT /api/users/{id}` - Update user
 - `DELETE /api/users/{id}` - Delete user
-- `POST /api/users/authenticate` - Authenticate user
 
-#### Playlists
+#### Playlists (JWT Protected)
 - `POST /api/playlists/user/{userId}` - Create playlist
 - `GET /api/playlists/{id}` - Get playlist by ID
 - `GET /api/playlists/user/{userId}` - Get playlists by user
@@ -109,31 +137,33 @@ This project follows a microservices architecture with the following services:
 - `PUT /api/playlists/{id}` - Update playlist
 - `DELETE /api/playlists/{id}` - Delete playlist
 
-### Admin Service (Port 8082)
+### Admin Service (Port 9001)
 
-#### Admins
-- `POST /api/admins` - Create admin
+#### Authentication
+- `POST /api/admins` - Register new admin (public)
+- `POST /api/admins/authenticate` - Admin login with JWT token response
+
+#### Admins (JWT Protected)
 - `GET /api/admins/{id}` - Get admin by ID
 - `GET /api/admins/email/{email}` - Get admin by email
 - `GET /api/admins/username/{username}` - Get admin by username
 - `GET /api/admins` - Get all admins
 - `PUT /api/admins/{id}` - Update admin
 - `DELETE /api/admins/{id}` - Delete admin
-- `POST /api/admins/authenticate` - Authenticate admin
 
-#### Songs
-- `POST /api/songs` - Create song
+#### Songs (JWT Protected for Admin)
+- `POST /api/songs` - Create song (Admin only)
 - `GET /api/songs/{id}` - Get song by ID
-- `GET /api/songs` - Get all songs
-- `GET /api/songs/visible` - Get visible songs
+- `GET /api/songs` - Get all songs (Admin only)
+- `GET /api/songs/visible` - Get visible songs (public)
 - `GET /api/songs/search` - Search songs
 - `GET /api/songs/search/name` - Search by name
 - `GET /api/songs/search/singer` - Search by singer
 - `GET /api/songs/search/music-director` - Search by music director
 - `GET /api/songs/search/album` - Search by album
-- `PUT /api/songs/{id}` - Update song
-- `PUT /api/songs/{id}/toggle-visibility` - Toggle visibility
-- `DELETE /api/songs/{id}` - Delete song
+- `PUT /api/songs/{id}` - Update song (Admin only)
+- `PUT /api/songs/{id}/toggle-visibility` - Toggle visibility (Admin only)
+- `DELETE /api/songs/{id}` - Delete song (Admin only)
 
 ## Database Schema
 
@@ -146,33 +176,59 @@ This project follows a microservices architecture with the following services:
 - **admins**: Admin information (id, username, email, phone_number, password, admin_level, created_at, updated_at)
 - **songs**: Song information (id, name, singer, music_director, release_date, album_name, duration_minutes, file_path, is_visible, created_at, updated_at)
 
-## Sprint 1 Objectives Completed
+## Troubleshooting
 
-✅ **Database Schema**: All tables created with proper relationships
-✅ **Spring Entities**: Complete entity classes with JPA annotations
-✅ **Microservice Structure**: Eureka Server, Config Server, User Service, Admin Service
-✅ **CRUD Operations**: Complete CRUD for User and Admin entities
-✅ **HTML/CSS Templates**: Modern, responsive frontend interface
-✅ **Service Discovery**: Eureka Server for microservice registration
-✅ **Configuration Management**: Spring Cloud Config for centralized configuration
+### Common Issues
+
+**Service Startup Issues**:
+- Ensure services are started in the correct order (Eureka → Config → User → Admin)
+- Check that ports 8761, 8888, 9001, and 9002 are available
+- Wait for each service to fully register with Eureka before starting the next
+
+**Authentication Issues**:
+- Both admin and user services require service restart after configuration changes
+- JWT tokens include proper role claims for authorization
+- Some endpoints are configured for public access (registration, login, song visibility)
+
+**403 Errors**:
+- Restart both user-service and admin-service if experiencing 403 errors
+- Check that JWT tokens are properly included in request headers
+- Verify that the user has appropriate roles for protected endpoints
+
+### H2 Database Access
+
+**User Service Database**:
+- URL: `jdbc:h2:mem:userdb`
+- Username: `sa`
+- Password: (leave blank)
+
+**Admin Service Database**:
+- URL: `jdbc:h2:mem:admindb`
+- Username: `sa`
+- Password: (leave blank)
+
+## Features Completed
+
+✅ **JWT Authentication**: Secure token-based authentication system
+✅ **Role-Based Security**: Admin and user role management
+✅ **Database Schema**: All tables with proper relationships
+✅ **Microservice Architecture**: Complete service discovery and configuration
+✅ **Admin Dashboard**: Full song management interface
+✅ **User Registration**: Secure user registration and authentication
+✅ **Song Management**: Complete CRUD operations with visibility controls
+✅ **Search Functionality**: Multi-criteria song search
+✅ **Frontend Integration**: Modern responsive web interface
 ✅ **API Documentation**: Swagger integration for all services
-✅ **Exception Handling**: Custom exceptions for each microservice
-✅ **Validation**: Input validation using Bean Validation
-
-## Next Steps (Sprint 2)
-
-- Implement search functionality for songs and playlists
-- Add song CRUD operations for admin
-- Implement visibility restrictions for songs
-- Add playlist CRUD operations for users
-- Add songs CRUD in playlists for users
-- Implement Spring Security and JWT authentication
+✅ **Exception Handling**: Comprehensive error handling
+✅ **Security Configuration**: Protected endpoints with proper authorization
 
 ## Development Notes
 
 - Each microservice has its own H2 database instance
-- Services communicate through REST APIs
+- Services communicate through REST APIs with JWT authentication
 - Frontend uses Fetch API for backend integration
-- All services are registered with Eureka Server
-- Configuration is managed centrally through Config Server
-- Swagger documentation is available for all services
+- All services are registered with Eureka Server for service discovery
+- Configuration is managed centrally through Spring Cloud Config
+- Swagger documentation available at `/swagger-ui.html` for each service
+- Song visibility is controlled by admin and defaults to visible for user access
+- JWT tokens expire after configured time and need to be refreshed
