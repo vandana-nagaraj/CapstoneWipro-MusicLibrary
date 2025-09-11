@@ -4,16 +4,22 @@ import com.musiclibrary.userservice.entity.User;
 import com.musiclibrary.userservice.exception.DuplicateResourceException;
 import com.musiclibrary.userservice.exception.UserNotFoundException;
 import com.musiclibrary.userservice.repository.UserRepository;
+import com.musiclibrary.userservice.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class UserService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
 
     
     public User createUser(User user) {
@@ -101,5 +107,22 @@ public class UserService {
         return userRepository.findAll().stream()
                 .map(User::getEmail)
                 .toList();
+    }
+    
+    public String authenticateUserAndGenerateToken(String email, String password) {
+        try {
+            User user = getUserByEmail(email);
+            if (user.getPassword().equals(password)) {
+                // Create JWT claims with user role
+                Map<String, Object> claims = new HashMap<>();
+                claims.put("roles", List.of("USER"));
+                claims.put("userId", user.getId());
+                
+                return jwtUtil.generateToken(email, claims);
+            }
+            return null;
+        } catch (UserNotFoundException e) {
+            return null;
+        }
     }
 }

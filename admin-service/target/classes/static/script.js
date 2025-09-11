@@ -664,9 +664,7 @@ async function createPlaylist(name, description = '') {
         
         console.log('Creating playlist with data:', playlistData);
         
-        console.log('Creating playlist with data:', playlistData);
-        
-        const response = await fetch(`${API_BASE_URL}/api/playlists`, { 
+        const response = await fetch(`${API_BASE_URL}/api/playlists/user/${user.id}`, { 
             method: 'POST', 
             headers: {
                 'Content-Type': 'application/json',
