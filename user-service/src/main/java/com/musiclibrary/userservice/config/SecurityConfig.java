@@ -1,7 +1,7 @@
 package com.musiclibrary.userservice.config;
 
-// JWT Authentication Filter import removed
-// Autowired import removed as no longer needed
+import com.musiclibrary.userservice.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -9,7 +9,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-// UsernamePasswordAuthenticationFilter import removed as no longer needed
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -18,7 +18,8 @@ import org.springframework.web.filter.CorsFilter;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    // JWT Authentication Filter removed - using admin-service for authentication
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,12 +32,15 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers("/api/users", "/api/users/authenticate", "/api/users/email/**").permitAll()
-                        .requestMatchers("/api/songs/**").permitAll()
-                        .requestMatchers("/api/playlists/**").permitAll()
-                        .anyRequest().permitAll()
-                );
-                // JWT filter removed
+                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        .requestMatchers("/api/users/authenticate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/songs/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/playlists/**").authenticated()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

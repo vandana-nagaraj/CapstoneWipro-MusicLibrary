@@ -1,6 +1,6 @@
 // Copied from frontend/script.js with same API base URLs
-const API_BASE_URL = 'http://localhost:8081';
-const ADMIN_API_BASE_URL = 'http://localhost:8083';
+const API_BASE_URL = 'http://localhost:9002';
+const ADMIN_API_BASE_URL = 'http://localhost:9001';
 
 let currentUserEmail = null;
 let currentUserName = null; // for user role
@@ -12,6 +12,7 @@ let playlistPlayback = { queue: [], index: -1, isPlaying: false, repeat: false, 
 // context for playlist picker modal
 let playlistPickContext = null;
 
+// Initialize sections
 const sections = {
     home: document.getElementById('home'),
     login: document.getElementById('login'),
@@ -19,8 +20,17 @@ const sections = {
     songs: document.getElementById('songs'),
     playlists: document.getElementById('playlists'),
     playlistDetail: document.getElementById('playlistDetail'),
-    adminPanel: document.getElementById('adminPanel')
+    adminPanel: document.getElementById('adminPanel'),
 };
+
+// Hide all sections except home by default
+Object.values(sections).forEach(section => {
+    if (section && section.id !== 'home') {
+        section.classList.add('hidden');
+    } else if (section) {
+        section.classList.remove('hidden');
+    }
+});
 
 const forms = {
     login: document.getElementById('loginForm'),
@@ -86,7 +96,9 @@ function showSection(sectionName) {
     Object.values(sections).forEach(section => {
         section.classList.add('hidden');
     });
-    sections[sectionName].classList.remove('hidden');
+    if (sections[sectionName]) {
+        sections[sectionName].classList.remove('hidden');
+    }
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
@@ -109,7 +121,20 @@ function showPlaylists() {
         document.getElementById('playlistsList').innerHTML = '<div class="text-center"><p>Please login to view playlists</p><button class="btn btn-primary" onclick="showLogin()">Login</button></div>';
     }
 }
-function showAdminPanel() { showSection('adminPanel'); loadAdminSongs(); }
+async function showAdminPanel() { 
+    // Verify admin privileges before showing the admin panel
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+    showSection('adminPanel'); 
+    try {
+        await loadAdminSongs();
+    } catch (error) {
+        console.error('Error loading admin panel:', error);
+        showMessage('Failed to load admin panel. Please try again.', 'error');
+    }
+}
 
 function routeByHash() {
     const hash = (location.hash || '#home').substring(1);
@@ -122,6 +147,18 @@ function routeByHash() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Show home section by default if no hash is present
+    if (!window.location.hash) {
+        showSection('home');
+    } else {
+        const section = window.location.hash.substring(1);
+        if (sections[section]) {
+            showSection(section);
+        } else {
+            showSection('home');
+        }
+    }
+
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -183,37 +220,76 @@ async function handleLogin(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const userType = formData.get('userType');
-    const loginData = { email: formData.get('email'), password: formData.get('password') };
-    showMessage('Logging in...', 'success');
+    const email = formData.get('email').trim();
+    const password = formData.get('password');
+    
+    // Basic validation
+    if (!email || !password) {
+        showMessage('Please enter both email and password', 'error');
+        return;
+    }
+    
+    showMessage('Logging in...', 'info');
+    
     try {
         if (userType === 'admin') {
-            const response = await fetch(`${ADMIN_API_BASE_URL}/auth/login?email=${loginData.email}&password=${loginData.password}`, { method: 'POST' });
-            if (response.ok) {
-                const body = await response.json();
-                authToken = body.token || null;
-                currentUserEmail = loginData.email;
-                currentUserType = userType;
+            console.log('Attempting admin login for:', email);
+            const response = await fetch(`${ADMIN_API_BASE_URL}/auth/login?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Admin login failed:', response.status, errorText);
+                showMessage(`Login failed: ${errorText || 'Invalid credentials'}`, 'error');
+                return;
+            }
+            
+            const body = await response.json();
+            authToken = body.token || null;
+            
+            if (!authToken) {
+                console.error('No token received in login response');
+                showMessage('Login failed: No authentication token received', 'error');
+                return;
+            }
+            
+            currentUserEmail = email;
+            currentUserType = userType;
+            
+            // Log authentication information
+            console.log('Admin login successful:', { 
+                email: currentUserEmail, 
+                userType: currentUserType,
+                tokenPrefix: authToken ? authToken.substring(0, 10) + '...' : 'None'
+            });
+            
+            // Reset form and update UI
+            if (forms.login) { forms.login.reset(); }
+            showMessage('Admin login successful!', 'success');
+            
+            try {
+                await Promise.all([
+                    resolveAndSetLoggedInName(),
+                    resolveAndSetAdminName()
+                ]);
                 
-                // Log authentication information
-                console.log('Admin login successful:', { 
-                    email: currentUserEmail, 
-                    userType: currentUserType, 
-                    tokenReceived: authToken ? 'Yes' : 'No' 
-                });
-                
-                showMessage('Login successful!', 'success');
-                if (forms.login) { forms.login.reset(); }
-                await resolveAndSetLoggedInName();
-                await resolveAndSetAdminName();
                 updateNavbar();
                 personalizeHome();
-                showSongs();
-            } else {
-                console.error('Admin login failed:', response.status);
-                showMessage('Invalid credentials!', 'error');
+                showAdminPanel(); // Take admin directly to admin panel
+                
+            } catch (error) {
+                console.error('Error in post-login setup:', error);
+                // Continue with login even if name resolution fails
+                updateNavbar();
+                personalizeHome();
+                showAdminPanel();
             }
         } else {
-            const response = await fetch(`${API_BASE_URL}/auth/login?email=${loginData.email}&password=${loginData.password}`, { method: 'POST' });
+            const response = await fetch(`${API_BASE_URL}/auth/login?email=${formData.get('email')}&password=${formData.get('password')}`, { method: 'POST' });
             if (response.ok) {
                 const body = await response.json();
                 authToken = body.token || null;
@@ -270,10 +346,24 @@ async function loadSongs() {
     const songsList = document.getElementById('songsList');
     songsList.innerHTML = '<div class="loading"></div>';
     try {
-        const response = await fetch(`${ADMIN_API_BASE_URL}/api/songs/visible`);
-        if (response.ok) { const songs = await response.json(); displaySongs(songs); }
+        // If admin is logged in, show all songs; otherwise show only visible songs
+        const endpoint = (currentUserType === 'admin' && authToken) ? 
+            `${ADMIN_API_BASE_URL}/api/songs` : 
+            `${ADMIN_API_BASE_URL}/api/songs/visible`;
+        
+        const headers = (currentUserType === 'admin' && authToken) ? 
+            { 'Authorization': `Bearer ${authToken}` } : {};
+        
+        const response = await fetch(endpoint, { headers });
+        if (response.ok) { 
+            const songs = await response.json(); 
+            displaySongs(songs); 
+        }
         else { songsList.innerHTML = '<p>Failed to load songs</p>'; }
-    } catch (error) { songsList.innerHTML = '<p>Error loading songs</p>'; }
+    } catch (error) { 
+        console.error('Error loading songs:', error);
+        songsList.innerHTML = '<p>Error loading songs</p>'; 
+    }
 }
 
 function displaySongs(songs) {
@@ -381,21 +471,154 @@ function displayPlaylists(playlists) {
     `;
 }
 
-function showCreatePlaylist() { const name = prompt('Enter playlist name:'); if (name) { createPlaylist(name); } }
+// Show create playlist modal
+function showCreatePlaylist() {
+    if (!currentUserEmail) {
+        showMessage('Please login to create playlists', 'error');
+        return;
+    }
 
-async function createPlaylist(name) {
-    if (!currentUserEmail) { showMessage('Please login to create playlists', 'error'); return; }
-    try {
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (userResponse.ok) {
-            const user = await userResponse.json();
-            currentUserName = user.username || currentUserName;
-            const playlistData = { name: name, description: '' };
-            const response = await fetch(`${API_BASE_URL}/api/playlists/user/${user.id}`, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, authToken ? { 'Authorization': `Bearer ${authToken}` } : {}), body: JSON.stringify(playlistData) });
-            if (response.ok) { showMessage('Playlist created successfully!', 'success'); loadPlaylists(); }
-            else { showMessage('Failed to create playlist', 'error'); }
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Playlist</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="playlistName">Playlist Name</label>
+                    <input type="text" id="playlistName" class="form-control" placeholder="My Awesome Playlist" required>
+                </div>
+                <div class="form-group">
+                    <label for="playlistDescription">Description (Optional)</label>
+                    <textarea id="playlistDescription" class="form-control" rows="3" placeholder="Add a description..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelCreatePlaylist">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmCreatePlaylist">Create Playlist</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'flex';
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal(modal);
         }
-    } catch (error) { showMessage('Error creating playlist', 'error'); }
+    });
+
+    // Close button
+    modal.querySelector('.close-btn').addEventListener('click', () => closeModal(modal));
+    
+    // Cancel button
+    modal.querySelector('#cancelCreatePlaylist').addEventListener('click', () => closeModal(modal));
+    
+    // Create button
+    modal.querySelector('#confirmCreatePlaylist').addEventListener('click', () => {
+        const name = modal.querySelector('#playlistName').value.trim();
+        const description = modal.querySelector('#playlistDescription').value.trim();
+        
+        if (name === '') {
+            showMessage('Playlist name cannot be empty', 'error');
+            return;
+        }
+        
+        closeModal(modal);
+        createPlaylist(name, description);
+    });
+    
+    // Focus the input field
+    setTimeout(() => {
+        const input = modal.querySelector('#playlistName');
+        if (input) input.focus();
+    }, 100);
+}
+
+// Close modal helper function
+function closeModal(modal) {
+    modal.style.animation = 'fadeOut 0.3s';
+    setTimeout(() => {
+        modal.remove();
+    }, 300);
+}
+
+async function createPlaylist(name, description = '') {
+    console.log('Starting playlist creation with name:', name);
+    
+    if (!currentUserEmail) { 
+        console.error('No current user email found');
+        showMessage('Please login to create playlists', 'error'); 
+        return; 
+    }
+    
+    try {
+        console.log('Fetching user data for:', currentUserEmail);
+        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        });
+        
+        if (!userResponse.ok) {
+            const errorText = await userResponse.text();
+            console.error('Failed to fetch user data:', errorText);
+            showMessage('Failed to load user information', 'error');
+            return;
+        }
+        
+        const user = await userResponse.json();
+        console.log('User data loaded:', user);
+        
+        if (!user || !user.id) {
+            console.error('Invalid user data received:', user);
+            showMessage('Invalid user information', 'error');
+            return;
+        }
+        
+        currentUserName = user.username || currentUserName;
+        const playlistData = { 
+            name: name, 
+            description: description,
+            userId: user.id,
+            createdBy: user.id,
+            isPublic: false
+        };
+        
+        console.log('Creating playlist with data:', playlistData);
+        
+        console.log('Creating playlist with data:', playlistData);
+        
+        const response = await fetch(`${API_BASE_URL}/api/playlists`, { 
+            method: 'POST', 
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+            }, 
+            body: JSON.stringify(playlistData) 
+        });
+        
+        const responseData = await response.json().catch(() => ({}));
+        
+        if (response.ok) {
+            console.log('Playlist created successfully:', responseData);
+            showMessage('Playlist created successfully!', 'success');
+            // Refresh the playlists list
+            loadPlaylists();
+            // Switch to playlists view
+            showSection('playlists');
+        } else {
+            console.error('Failed to create playlist:', response.status, responseData);
+            const errorMsg = responseData.message || 'Unknown error occurred';
+            showMessage(`Failed to create playlist: ${errorMsg}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error in createPlaylist:', error);
+        showMessage(`Error creating playlist: ${error.message}`, 'error');
+    }
 }
 
 async function addToPlaylist(songId, songName) {
@@ -419,7 +642,7 @@ async function addToPlaylist(songId, songName) {
     try {
         console.log('Starting addToPlaylist:', { songId, songName, currentUserEmail, currentUserType });
         
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
+        const userResponse = await fetch(`${USER_API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
@@ -572,7 +795,7 @@ async function searchMyPlaylists() {
     if (!query) { loadPlaylists(); return; }
     playlistsList.innerHTML = '<div class="loading"></div>';
     try {
-        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
+        const userResponse = await fetch(`${USER_API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
         if (!userResponse.ok) { playlistsList.innerHTML = '<p>User not found</p>'; return; }
         const user = await userResponse.json();
         const response = await fetch(`${API_BASE_URL}/api/playlists/user/${user.id}/search?name=${encodeURIComponent(query)}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
@@ -739,18 +962,178 @@ function playlistPlaySpecific(songId) {
 async function resolveAndSetLoggedInName() {
     try {
         if (!currentUserEmail) return;
-        const res = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (res.ok) { const user = await res.json(); currentUserName = user.username || currentUserName; }
-    } catch (_) {}
+        const res = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} 
+        });
+        if (res.ok) { 
+            const user = await res.json(); 
+            currentUserName = user.username || currentUserEmail.split('@')[0];
+            console.log('Set currentUserName:', currentUserName);
+            // Update the welcome message with the new name
+            personalizeHome();
+        }
+    } catch (error) {
+        console.error('Error resolving user name:', error);
+    }
 }
 
 async function resolveAndSetAdminName() {
     try {
         if (!currentUserEmail || currentUserType !== 'admin') return;
-        const res = await fetch(`${ADMIN_API_BASE_URL}/api/admins/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (res.ok) { const admin = await res.json(); currentAdminName = admin.username || currentAdminName; }
-    } catch (_) {}
+        const res = await fetch(`${ADMIN_API_BASE_URL}/api/admins/email/${currentUserEmail}`, { 
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} 
+        });
+        if (res.ok) { 
+            const admin = await res.json(); 
+            currentAdminName = admin.username || currentUserEmail.split('@')[0];
+            console.log('Set currentAdminName:', currentAdminName);
+            // Update the welcome message with the new admin name
+            personalizeHome();
+        }
+    } catch (error) {
+        console.error('Error resolving admin name:', error);
+    }
 }
+
+// Navigation State
+let isMenuOpen = false;
+
+// DOM Elements
+const menuToggleBtn = document.querySelector('.menu-toggle');
+const sideNav = document.querySelector('.sidenav');
+const profileToggleBtn = document.querySelector('.profile');
+const profileDropdown = document.querySelector('.profile-menu');
+const mainContent = document.querySelector('.main-content-wrapper');
+
+// Toggle Side Navigation
+function toggleMenu() {
+    if (!sideNav) return;
+    
+    isMenuOpen = !isMenuOpen;
+    sideNav.classList.toggle('active', isMenuOpen);
+    document.body.style.overflow = isMenuOpen ? 'hidden' : '';
+    
+    // Update ARIA attributes
+    if (menuToggleBtn) {
+        menuToggleBtn.setAttribute('aria-expanded', isMenuOpen);
+        menuToggleBtn.setAttribute('aria-label', isMenuOpen ? 'Close menu' : 'Open menu');
+    }
+}
+
+// Toggle Profile Menu
+function toggleProfileMenu() {
+    if (!profileToggleBtn || !profileDropdown) return;
+    
+    const isExpanded = profileToggleBtn.getAttribute('aria-expanded') === 'true';
+    profileToggleBtn.setAttribute('aria-expanded', !isExpanded);
+    profileDropdown.classList.toggle('active', !isExpanded);
+}
+
+// Close menus when clicking outside
+function handleClickOutside(event) {
+    // Close profile menu if clicking outside
+    if (profileDropdown && profileToggleBtn && 
+        !profileToggleBtn.contains(event.target) && 
+        !profileDropdown.contains(event.target)) {
+        profileDropdown.classList.remove('active');
+        profileToggleBtn.setAttribute('aria-expanded', 'false');
+    }
+    
+    // Close side menu on mobile when clicking on main content
+    if (window.innerWidth < 1024 && isMenuOpen && 
+        sideNav && menuToggleBtn &&
+        !sideNav.contains(event.target) && 
+        !menuToggleBtn.contains(event.target)) {
+        toggleMenu();
+    }
+}
+
+// Handle keyboard navigation
+function handleKeyDown(event) {
+    if (event.key !== 'Escape') return;
+    
+    // Close menus on Escape key
+    if (isMenuOpen) toggleMenu();
+    
+    if (profileDropdown && profileToggleBtn) {
+        profileDropdown.classList.remove('active');
+        profileToggleBtn.setAttribute('aria-expanded', 'false');
+    }
+}
+
+// Initialize navigation
+function initNavigation() {
+    // Add event listeners
+    if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleMenu);
+    if (profileToggleBtn) profileToggleBtn.addEventListener('click', toggleProfileMenu);
+    document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // Close menu when clicking on nav links (for mobile)
+    const navLinks = document.querySelectorAll('.sidenav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth < 1024) {
+                toggleMenu();
+            }
+        });
+    });
+    
+    // Update active nav link based on current URL
+    updateActiveNavLink();
+    
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (!sideNav) return;
+            
+            if (window.innerWidth >= 1024) {
+                sideNav.classList.add('active');
+                isMenuOpen = true;
+            } else {
+                sideNav.classList.remove('active');
+                isMenuOpen = false;
+            }
+        }, 250);
+    });
+}
+
+// Update active nav link based on current URL
+function updateActiveNavLink() {
+    const path = window.location.pathname;
+    const navLinks = document.querySelectorAll('.sidenav-link');
+    
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && path.includes(href.split('?')[0])) {
+            link.classList.add('active');
+        } else {
+            link.classList.remove('active');
+        }
+    });
+}
+
+// Update page title in header
+function updatePageTitle(title) {
+    const titleElement = document.querySelector('.header-title');
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
+    document.title = `${title} | Music Library`;
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    initNavigation();
+    
+    // Set initial state for desktop
+    if (window.innerWidth >= 1024) {
+        sideNav.classList.add('active');
+        isMenuOpen = true;
+    }
+});
 
 // Global music player state
 let currentSong = null;
@@ -887,76 +1270,308 @@ function formatTime(seconds) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Admin panel: songs CRUD + visibility
+/**
+ * Loads all songs for the admin panel with enhanced error handling and permission checks
+ */
 async function loadAdminSongs() {
     const list = document.getElementById('adminSongsList');
-    if (!list) return;
-    list.innerHTML = '<div class="loading"></div>';
+    if (!list) {
+        console.error('Admin songs list element not found');
+        return;
+    }
+    
+    // Verify admin privileges
+    if (currentUserType !== 'admin') {
+        list.innerHTML = '<div class="error-message">Unauthorized: Admin access required</div>';
+        return;
+    }
+    
+    // Show loading state
+    list.innerHTML = '<div class="loading">Loading songs...</div>';
     try {
-        const response = await fetch(`${ADMIN_API_BASE_URL}/api/songs`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (response.ok) {
-            const songs = await response.json();
-            list.innerHTML = songs.map(s => `
-                <div class="song-card" onclick="playSong(${s.id}, '${s.name.replace(/'/g, "\\'")}', '${(s.singer || 'Unknown Artist').replace(/'/g, "\\'")}')">
-                    <h3>${s.name} <i class="fas fa-play-circle" style="color: #3498db; margin-left: 0.5rem; cursor: pointer;"></i></h3>
-                    <p><strong>Singer:</strong> ${s.singer || ''}</p>
-                    <p><strong>Music Director:</strong> ${s.musicDirector || ''}</p>
-                    <p><strong>Album:</strong> ${s.albumName || ''}</p>
-                    <p><strong>Release Date:</strong> ${s.releaseDate ? new Date(s.releaseDate).toLocaleDateString() : ''}</p>
-                    <p><strong>Duration:</strong> ${s.durationMinutes ? s.durationMinutes + ' minutes' : ''}</p>
-                    <p><strong>Visible:</strong> <span style="color: ${s.isVisible ? '#28a745' : '#dc3545'}; font-weight: bold;">${s.isVisible ? 'Yes' : 'No'}</span></p>
-                    <div class="admin-action-bar" onclick="event.stopPropagation()">
-                        <button class="action-btn visibility" onclick='toggleVisibility(${s.id})'>
-                            <i class="fas fa-eye${s.isVisible ? '-slash' : ''}"></i> ${s.isVisible ? 'Hide' : 'Show'}
-                        </button>
-                        <button class="action-btn delete" onclick='deleteSong(${s.id})'>
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        } else { list.innerHTML = '<p>Failed to load songs</p>'; }
-    } catch (_) { list.innerHTML = '<p>Error loading songs</p>'; }
+        console.log('Loading admin songs with token:', authToken ? 'Token exists' : 'No token');
+        const response = await fetch(`${ADMIN_API_BASE_URL}/api/songs`, { 
+            headers: authToken ? { 
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            } : {}
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+        
+        const songs = await response.json();
+        console.log(`Loaded ${songs.length} songs`);
+        
+        if (songs.length === 0) {
+            list.innerHTML = `
+                <div class="no-songs">
+                    <i class="fas fa-music" style="font-size: 3rem; color: #95a5a6; margin-bottom: 1rem;"></i>
+                    <h3>No songs found</h3>
+                    <p>Click the "Add New Song" button to get started.</p>
+                </div>`;
+            return;
+        }
+        
+        list.innerHTML = `
+            <div class="admin-songs-header">
+                <h2>Manage Songs</h2>
+                <button class="btn btn-primary" onclick="showSongForm()">
+                    <i class="fas fa-plus"></i> Add New Song
+                </button>
+            </div>
+            <div class="songs-grid">
+                ${songs.map(s => `
+                    <div class="admin-song-card" data-id="${s.id}">
+                        <div class="song-card-header">
+                            <h3>${escapeHtml(s.name)}</h3>
+                            <div class="song-actions">
+                                <button class="btn-icon" onclick="editSong(${s.id}, event)" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon" onclick="deleteSong(${s.id}, event)" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                <button class="btn-icon ${s.visible ? 'active' : ''}" 
+                                        onclick="toggleVisibility(${s.id}, event)" 
+                                        title="${s.visible ? 'Visible' : 'Hidden'}">
+                                    <i class="fas ${s.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="song-details">
+                            <p><strong>Singer:</strong> ${escapeHtml(s.singer || 'N/A')}</p>
+                            <p><strong>Music Director:</strong> ${escapeHtml(s.musicDirector || 'N/A')}</p>
+                            <p><strong>Album:</strong> ${escapeHtml(s.albumName || 'N/A')}</p>
+                            <p><strong>Release Date:</strong> ${s.releaseDate ? new Date(s.releaseDate).toLocaleDateString() : 'N/A'}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge ${s.visible ? 'badge-success' : 'badge-warning'}">
+                                    ${s.visible ? 'Visible' : 'Hidden'}
+                                </span>
+                            </p>
+                        </div>
+                    </div>`).join('')}
+            </div>`;
+        } else {
+            throw new Error('Failed to load songs');
+        }
+    } catch (error) { 
+        console.error('Error loading admin songs:', error);
+        list.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Failed to load songs</h3>
+                <p>${error.message || 'Please try again later'}</p>
+                <button class="btn btn-primary" onclick="loadAdminSongs()">
+                    <i class="fas fa-sync-alt"></i> Retry
+                </button>
+            </div>`;
+    }
 }
 
-function resetSongForm(e) { if (e) e.preventDefault(); const f=document.getElementById('songForm'); if (f) f.reset(); const id=document.getElementById('songId'); if (id) id.value=''; }
+/**
+ * Shows the song form for creating or editing a song
+ * @param {number} [id] - The ID of the song to edit, or undefined for a new song
+ */
+function showSongForm(id) {
+    // Verify admin privileges
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+
+    // Show the form section
+    const formSection = document.getElementById('songFormSection');
+    if (formSection) {
+        formSection.style.display = 'block';
+    }
+
+    // If editing, load the song data
+    if (id) {
+        loadSongForEditing(id);
+    } else {
+        resetSongForm();
+    }
+
+    // Scroll to the form
+    const formElement = document.getElementById('songForm');
+    if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+/**
+ * Loads a song's data into the form for editing
+ * @param {number} id - The ID of the song to edit
+ */
+async function loadSongForEditing(id) {
+    try {
+        showMessage('Loading song data...', 'info');
+        const response = await fetch(`${ADMIN_API_BASE_URL}/api/songs/${id}`, {
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load song data');
+        }
+
+        const song = await response.json();
+        
+        // Fill the form with song data
+        document.getElementById('songId').value = song.id || '';
+        document.getElementById('songName').value = song.name || '';
+        document.getElementById('songSinger').value = song.singer || '';
+        document.getElementById('songDirector').value = song.musicDirector || '';
+        document.getElementById('songAlbum').value = song.albumName || '';
+        document.getElementById('songRelease').value = song.releaseDate ? song.releaseDate.split('T')[0] : '';
+        document.getElementById('songDuration').value = song.durationMinutes || '';
+        
+    } catch (error) {
+        console.error('Error loading song for editing:', error);
+        showMessage(`Error loading song: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Resets the song form to its initial state
+ * @param {Event} [e] - Optional event object to prevent default form submission
+ */
+function resetSongForm(e) { 
+    if (e) e.preventDefault(); 
+    const form = document.getElementById('songForm'); 
+    if (form) {
+        form.reset();
+        const idField = document.getElementById('songId');
+        if (idField) idField.value = '';
+        
+        // Clear any validation errors
+        const errorElements = form.querySelectorAll('.error-message');
+        errorElements.forEach(el => el.remove());
+    } 
+}
 
 async function submitSongForm(e) {
     if (e) e.preventDefault();
+    
+    // Check if user is logged in as admin
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+    
+    // Validate required fields
+    const name = document.getElementById('songName').value.trim();
+    const singer = document.getElementById('songSinger').value.trim();
+    const musicDirector = document.getElementById('songDirector').value.trim();
+    
+    if (!name || !singer || !musicDirector) {
+        showMessage('Please fill in all required fields', 'error');
+        return;
+    }
+    
     const payload = {
-        name: document.getElementById('songName').value,
-        singer: document.getElementById('songSinger').value,
-        musicDirector: document.getElementById('songDirector').value,
-        albumName: document.getElementById('songAlbum').value,
+        name: name,
+        singer: singer,
+        musicDirector: musicDirector,
+        albumName: document.getElementById('songAlbum').value.trim(),
         releaseDate: document.getElementById('songRelease').value || null,
         durationMinutes: parseInt(document.getElementById('songDuration').value || '0', 10),
         isVisible: true
     };
+    
     const id = document.getElementById('songId').value;
     const url = `${ADMIN_API_BASE_URL}/api/songs` + (id ? `/${id}` : '');
     const method = id ? 'PUT' : 'POST';
+    
     try {
-        const res = await fetch(url, { method, headers: Object.assign({ 'Content-Type': 'application/json' }, authToken ? { 'Authorization': `Bearer ${authToken}` } : {}), body: JSON.stringify(payload) });
-        if (res.ok) { showMessage('Song saved', 'success'); resetSongForm(); loadAdminSongs(); }
-        else { showMessage('Save failed', 'error'); }
-    } catch (_) { showMessage('Save failed', 'error'); }
+        showMessage('Saving song...', 'info');
+        const res = await fetch(url, { 
+            method, 
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+            }, 
+            body: JSON.stringify(payload) 
+        });
+        
+        if (res.ok) {
+            const result = await res.json();
+            showMessage(`Song ${id ? 'updated' : 'created'} successfully!`, 'success');
+            resetSongForm(); 
+            await loadAdminSongs(); 
+            loadSongs();
+        } else {
+            const error = await res.text();
+            console.error('Failed to save song:', error);
+            showMessage(`Failed to save song: ${error}`, 'error');
+        }
+    } catch (error) { 
+        console.error('Error saving song:', error);
+        showMessage('Failed to save song. Please try again.', 'error'); 
+    }
 }
 
 async function deleteSong(id) {
-    if (!confirm('Delete this song?')) return;
+    if (!confirm('Are you sure you want to delete this song? This action cannot be undone.')) return;
+    
+    // Check if user is logged in as admin
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+    
     try {
-        const res = await fetch(`${ADMIN_API_BASE_URL}/api/songs/${id}`, { method: 'DELETE', headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (res.ok) { showMessage('Song deleted', 'success'); loadAdminSongs(); }
-        else { showMessage('Delete failed', 'error'); }
-    } catch (_) { showMessage('Delete failed', 'error'); }
+        showMessage('Deleting song...', 'info');
+        const res = await fetch(`${ADMIN_API_BASE_URL}/api/songs/${id}`, { 
+            method: 'DELETE', 
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} 
+        });
+        
+        if (res.ok) { 
+            showMessage('Song deleted successfully', 'success'); 
+            await loadAdminSongs(); 
+            loadSongs(); // Refresh the main songs list if needed
+        } else {
+            const error = await res.text();
+            console.error('Failed to delete song:', error);
+            showMessage(`Failed to delete song: ${error}`, 'error');
+        }
+    } catch (error) { 
+        console.error('Error deleting song:', error);
+        showMessage('Failed to delete song. Please try again.', 'error'); 
+    }
 }
 
 async function toggleVisibility(id) {
+    // Check if user is logged in as admin
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+    
     try {
-        const res = await fetch(`${ADMIN_API_BASE_URL}/api/songs/${id}/toggle-visibility`, { method: 'PUT', headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
-        if (res.ok) { showMessage('Visibility toggled', 'success'); loadAdminSongs(); }
-        else { showMessage('Toggle failed', 'error'); }
-    } catch (_) { showMessage('Toggle failed', 'error'); }
+        showMessage('Updating song visibility...', 'info');
+        const res = await fetch(`${ADMIN_API_BASE_URL}/api/songs/${id}/toggle-visibility`, { 
+            method: 'PUT', 
+            headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+        });
+        
+        if (res.ok) { 
+            const result = await res.json();
+            showMessage(`Song visibility updated to ${result.isVisible ? 'visible' : 'hidden'}`, 'success'); 
+            await loadAdminSongs();
+            loadSongs(); // Refresh the main songs list if needed
+        } else {
+            const error = await res.text();
+            console.error('Failed to toggle visibility:', error);
+            showMessage(`Failed to update visibility: ${error}`, 'error');
+        }
+    } catch (error) { 
+        console.error('Error toggling visibility:', error);
+        showMessage('Failed to update visibility. Please try again.', 'error'); 
+    }
 }
 
 async function showPlaylistStats(playlistId) {
@@ -1113,7 +1728,23 @@ async function addSelectedSongs() {
     }
 }
 
-// Message display function
+// Message
+/**
+ * Escapes HTML special characters to prevent XSS
+ * @param {string} unsafe - The unsafe HTML string
+ * @returns {string} The escaped HTML string
+ */
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Helper function to show a message
 function showMessage(message, type = 'info') {
     // Remove any existing message
     const existingMessage = document.querySelector('.message-toast');

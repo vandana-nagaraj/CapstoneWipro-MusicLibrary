@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Library - Home</title>
+    <title>Forest Music Library - Home</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -11,30 +11,61 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <header class="header">
-        <nav class="navbar">
-            <div class="nav-brand">
-                <i class="fas fa-music"></i>
-                <span>Music Library</span>
+    <!-- Side Navigation -->
+    <div class="sidenav" id="sidenav">
+        <div class="sidenav-header">
+            <i class="fas fa-tree"></i>
+            <span>Forest Music</span>
+            <button class="close-btn" id="closeNav">&times;</button>
+        </div>
+        <div class="sidenav-links">
+            <a href="#home" class="sidenav-link active" data-section="home">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="#songs" class="sidenav-link" data-section="songs">
+                <i class="fas fa-music"></i> Songs
+            </a>
+            <a href="#playlists" class="sidenav-link" data-section="playlists">
+                <i class="fas fa-list"></i> Playlists
+            </a>
+            <a href="#adminPanel" id="adminLink" class="sidenav-link hidden" data-section="adminPanel">
+                <i class="fas fa-cog"></i> Admin
+            </a>
+        </div>
+        <div class="sidenav-footer">
+            <div id="authLinks" class="auth-links">
+                <a href="#login" class="sidenav-link" data-section="login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="#register" class="sidenav-link" data-section="register">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
             </div>
-            <div class="nav-links">
-                <a href="#home" class="nav-link active">Home</a>
-                <a href="#songs" class="nav-link">Songs</a>
-                <a href="#playlists" class="nav-link">Playlists</a>
-                <a href="#adminPanel" id="adminLink" class="nav-link hidden">Admin</a>
-
-                <div id="authLinks" class="auth-links">
-                    <a href="#login" id="loginLink" class="nav-link">Login</a>
-                    <a href="#register" id="registerLink" class="nav-link">Register</a>
+            <div id="profileArea" class="profile-area hidden">
+                <div class="profile" id="profileToggle">
+                    <div class="avatar" id="profileAvatar">U</div>
+                    <div class="profile-info">
+                        <span class="profile-name" id="profileName">User</span>
+                        <span class="profile-role" id="profileRole">User</span>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div id="profileArea" class="profile-area hidden">
-                    <div class="profile" id="profileToggle">
-                        <div class="avatar" id="profileAvatar">U</div>
-                        <div class="profile-info">
-                            <span class="profile-name" id="profileName">User</span>
-                            <span class="profile-role" id="profileRole">User</span>
-                        </div>
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <!-- Top Header -->
+        <header class="top-header">
+            <button class="menu-toggle" id="openNav">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="header-title">Forest Music Library</div>
+            <div class="profile-menu-wrapper">
+                <div id="profileAreaTop" class="profile-area hidden">
+                    <div class="profile" id="profileToggleTop">
+                        <div class="avatar" id="profileAvatarTop">U</div>
+                        <span class="profile-name" id="profileNameTop">User</span>
                         <i class="fas fa-chevron-down caret"></i>
                     </div>
                     <div class="profile-menu hidden" id="profileMenu">
@@ -45,23 +76,66 @@
                     </div>
                 </div>
             </div>
-        </nav>
-    </header>
+        </header>
 
-    <main class="main-content">
-        <section id="home" class="hero-section">
-            <div class="hero-content">
-                <h1 id="homeTitle">Welcome to Music Library</h1>
-                <p id="homeSubtitle">Discover, organize, and enjoy your favorite music</p>
-                <div id="homeCta" class="hero-buttons">
-                    <button class="btn btn-primary" onclick="showLogin()">Login</button>
-                    <button class="btn btn-secondary" onclick="showRegister()">Register</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="login" class="auth-section hidden">
-            <div class="auth-container">
+        <main class="main-content">
+            <section id="home" class="welcome-section">
+                <div class="welcome-content">
+                    <div class="welcome-header">
+                        <div class="welcome-logo">
+                            <i class="fas fa-music-note"></i>
+                            <span>MelodiVerse</span>
+                        </div>
+                        <h1 id="homeTitle">Your Personal<br>Music Universe</h1>
+                        <p id="homeSubtitle" class="welcome-subtitle">Stream, organize, and discover music like never before</p>
+                        
+                        <div class="welcome-actions">
+                            <button class="btn btn-primary btn-large" onclick="showRegister()">
+                                <i class="fas fa-rocket"></i> Start Free Trial
+                            </button>
+                            <button class="btn btn-outline" onclick="showLogin()">
+                                <i class="fas fa-sign-in-alt"></i> Sign In
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="welcome-features">
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-compact-disc"></i></div>
+                            <h3>Unlimited Tracks</h3>
+                            <p>Access millions of songs from artists worldwide</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-layer-group"></i></div>
+                            <h3>Smart Playlists</h3>
+                            <p>Create and manage your perfect music collections</p>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon"><i class="fas fa-headphones"></i></div>
+                            <h3>High Quality</h3>
+                            <p>Experience crystal clear audio on any device</p>
+                        </div>
+                    </div>
+                    
+                    <div class="welcome-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">10M+</span>
+                            <span class="stat-label">Songs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">1M+</span>
+                            <span class="stat-label">Artists</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">24/7</span>
+                            <span class="stat-label">Support</span>
+                        </div>
+                    </div>
+                </div> <!-- Close welcome-content -->
+            </section> <!-- Close welcome-section -->
+            
+            <!-- Login Section -->
+            <div id="login" class="auth-container hidden">
                 <h2>Login</h2>
                 <form id="loginForm" class="auth-form">
                     <div class="form-group">
@@ -228,7 +302,8 @@
             </div>
             <div id="adminSongsList" class="songs-grid"></div>
         </section>
-    </main>
+        </main>
+    </div> <!-- End of main-content-wrapper -->
 
     <!-- Global Music Player Bar -->
     <div id="musicPlayer" class="music-player hidden">
@@ -263,11 +338,26 @@
     </div>
 
     <footer class="footer">
-        <p>&copy; 2024 Music Library. All rights reserved.</p>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>🌲 Forest Music Library</h4>
+                <p>Where nature meets melody in perfect harmony</p>
+            </div>
+            <div class="footer-section">
+                <h4>🎵 Explore</h4>
+                <p>Discover • Create • Listen • Share</p>
+            </div>
+            <div class="footer-section">
+                <h4>🌿 Connect</h4>
+                <p>Join our musical forest community</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Forest Music Library. Crafted with 💚 for music lovers. All rights reserved.</p>
+        </div>
     </footer>
 
     <script src="/script.js"></script>
 </body>
 </html>
-
 

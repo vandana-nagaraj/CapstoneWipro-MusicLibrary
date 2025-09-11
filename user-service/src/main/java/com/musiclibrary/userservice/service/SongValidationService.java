@@ -18,7 +18,7 @@ public class SongValidationService {
     @Autowired
     private RestTemplate restTemplate;
     
-    @Value("${admin-service.url:http://localhost:8083}")
+    @Value("${admin-service.url:http://localhost:9001}")
     private String adminServiceUrl;
     
     /**

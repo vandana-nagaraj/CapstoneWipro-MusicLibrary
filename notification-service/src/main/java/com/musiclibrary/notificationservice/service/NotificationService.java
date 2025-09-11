@@ -87,12 +87,54 @@ public class NotificationService {
     private List<String> getUserEmails() {
         try {
             // Make REST call to user-service to get all user emails
-            String url = "http://user-service/api/users/emails";
+            String url = "http://localhost:9002/api/users/emails";
             String[] emails = restTemplate.getForObject(url, String[].class);
             return emails != null ? List.of(emails) : List.of();
         } catch (Exception e) {
             // Fallback to demo emails if user-service is not available
+            System.err.println("Failed to fetch user emails from user-service: " + e.getMessage());
             return List.of("user1@example.com", "user2@example.com", "user3@example.com");
+        }
+    }
+    
+    public void sendUserRegistrationNotification(String userEmail, String username) {
+        String subject = "Welcome to Music Library!";
+        String message = String.format(
+            "Hello %s!\n\n" +
+            "Welcome to Music Library! Your account has been successfully created.\n\n" +
+            "You can now:\n" +
+            "- Browse thousands of songs\n" +
+            "- Create and manage playlists\n" +
+            "- Search for your favorite music\n" +
+            "- Enjoy our music player features\n\n" +
+            "Start exploring the music library now!\n\n" +
+            "Best regards,\nMusic Library Team",
+            username
+        );
+        
+        try {
+            Notification notification = createNotification(userEmail, subject, message, NotificationType.USER_REGISTRATION);
+            sendNotification(notification);
+        } catch (Exception e) {
+            System.err.println("Failed to send registration notification to " + userEmail + ": " + e.getMessage());
+        }
+    }
+    
+    public void sendPlaylistCreatedNotification(String userEmail, String playlistName) {
+        String subject = "Playlist Created Successfully";
+        String message = String.format(
+            "Hello!\n\n" +
+            "Your playlist '%s' has been created successfully.\n\n" +
+            "You can now add songs to your playlist and start enjoying your music collection!\n\n" +
+            "Best regards,\nMusic Library Team",
+            playlistName
+        );
+        
+        try {
+            Notification notification = createNotification(userEmail, subject, message, NotificationType.PLAYLIST_CREATED);
+            sendNotification(notification);
+        } catch (Exception e) {
+            System.err.println("Failed to send playlist notification to " + userEmail + ": " + e.getMessage());
         }
     }
 }

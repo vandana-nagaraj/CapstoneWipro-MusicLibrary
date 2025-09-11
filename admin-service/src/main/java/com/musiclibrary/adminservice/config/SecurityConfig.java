@@ -29,16 +29,40 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions().disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/", "/index.html", "/styles.css", "/script.js", "/favicon.ico").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/admins").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/admins/authenticate").permitAll()
-                        .requestMatchers("/api/songs/visible", "/api/songs/search/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/songs/*").permitAll()  // Allow song validation from user-service
-                        .requestMatchers("/api/songs/**").hasRole("ADMIN")
+                        // Public endpoints
+                        .requestMatchers(
+                            "/h2-console/**",
+                            "/", 
+                            "/index.html", 
+                            "/styles.css", 
+                            "/script.js", 
+                            "/js/**", 
+                            "/favicon.ico", 
+                            "/favicon.ico/**",
+                            "/static/**",
+                            "/v3/api-docs/**", 
+                            "/swagger-ui/**", 
+                            "/swagger-ui.html",
+                            "/webjars/**",
+                            "/error"
+                        ).permitAll()
+                        // Auth endpoints
+                        .requestMatchers(
+                            "/auth/**",
+                            "/api/auth/**"
+                        ).permitAll()
+                        // Public API endpoints
+                        .requestMatchers(
+                            "/api/songs/visible", 
+                            "/api/songs/search/**",
+                            "/api/songs/*/stream"
+                        ).permitAll()
+                        // Admin API endpoints
+                        .requestMatchers(
+                            "/api/admins",
+                            "/api/admins/**"
+                        ).permitAll()
+                        // All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -49,15 +73,17 @@ public class SecurityConfig {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
+        
+        // Allow all origins, headers, and methods for development
         config.setAllowCredentials(true);
-        config.addAllowedOriginPattern("http://localhost:*");
-        config.addAllowedOriginPattern("file://*");
+        config.addAllowedOriginPattern("*");
         config.addAllowedHeader("*");
-        config.addAllowedMethod(HttpMethod.GET);
-        config.addAllowedMethod(HttpMethod.POST);
-        config.addAllowedMethod(HttpMethod.PUT);
-        config.addAllowedMethod(HttpMethod.DELETE);
-        config.addAllowedMethod(HttpMethod.OPTIONS);
+        config.addAllowedMethod("*");
+        
+        // Add more specific CORS configuration for production
+        config.addExposedHeader("Authorization");
+        config.setMaxAge(3600L);
+        
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }

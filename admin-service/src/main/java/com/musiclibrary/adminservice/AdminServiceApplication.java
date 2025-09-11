@@ -25,7 +25,7 @@ public class AdminServiceApplication {
     @EventListener(ApplicationReadyEvent.class)
     public void openBrowser() {
         try {
-            String url = "http://localhost:8083/";
+            String url = "http://localhost:9001/";
             java.awt.Desktop desktop = java.awt.Desktop.isDesktopSupported() ? java.awt.Desktop.getDesktop() : null;
             if (desktop != null && desktop.isSupported(java.awt.Desktop.Action.BROWSE)) {
                 desktop.browse(new java.net.URI(url));

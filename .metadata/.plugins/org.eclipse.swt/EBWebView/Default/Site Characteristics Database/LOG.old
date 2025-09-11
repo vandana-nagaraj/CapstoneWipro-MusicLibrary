@@ -1,2 +1,5 @@
-2025/09/06-14:24:36.496 493c Creating DB C:\Users\Ms.Revathi\Desktop\Capstone\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Site Characteristics Database since it was missing.
-2025/09/06-14:24:36.508 493c Reusing MANIFEST C:\Users\Ms.Revathi\Desktop\Capstone\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Site Characteristics Database/MANIFEST-000001
+2025/09/11-06:49:32.043 2624 Log #3: 1 ops saved to Table #4 OK
+2025/09/11-06:49:32.052 2624 Archiving C:\Users\Nagaraj V\Desktop\d\CapstoneMusicLib\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Site Characteristics Database/000003.log: OK
+2025/09/11-06:49:32.053 2624 Table #4: 1 entries OK
+2025/09/11-06:49:32.057 2624 Archiving C:\Users\Nagaraj V\Desktop\d\CapstoneMusicLib\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Site Characteristics Database/MANIFEST-000001: OK
+2025/09/11-06:49:32.086 2624 **** Repaired leveldb C:\Users\Nagaraj V\Desktop\d\CapstoneMusicLib\.metadata\.plugins\org.eclipse.swt\EBWebView\Default\Site Characteristics Database; recovered 1 files; 130 bytes. Some data may have been lost. ****

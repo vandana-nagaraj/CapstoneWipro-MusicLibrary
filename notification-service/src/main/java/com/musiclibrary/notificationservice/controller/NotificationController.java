@@ -45,4 +45,30 @@ public class NotificationController {
         List<Notification> notifications = notificationService.getNotificationsByEmail(email);
         return ResponseEntity.ok(notifications);
     }
+    
+    @PostMapping("/user-registration")
+    @Operation(summary = "Send user registration notification", description = "Send welcome notification to new user")
+    public ResponseEntity<String> sendUserRegistrationNotification(
+            @RequestParam String userEmail,
+            @RequestParam String username) {
+        try {
+            notificationService.sendUserRegistrationNotification(userEmail, username);
+            return ResponseEntity.ok("User registration notification sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to send notification: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/playlist-created")
+    @Operation(summary = "Send playlist created notification", description = "Send notification when playlist is created")
+    public ResponseEntity<String> sendPlaylistCreatedNotification(
+            @RequestParam String userEmail,
+            @RequestParam String playlistName) {
+        try {
+            notificationService.sendPlaylistCreatedNotification(userEmail, playlistName);
+            return ResponseEntity.ok("Playlist created notification sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to send notification: " + e.getMessage());
+        }
+    }
 }
