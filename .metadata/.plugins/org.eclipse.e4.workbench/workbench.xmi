@@ -254,15 +254,9 @@
       <tags>categoryTag:Help</tags>
     </sharedElements>
     <sharedElements xsi:type="advanced:Area" xmi:id="_GtkvYIr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.editorss" selectedElement="_GtkvYYr_EfCREOHkX5JoqA">
-      <children xsi:type="basic:PartStack" xmi:id="_GtkvYYr_EfCREOHkX5JoqA" elementId="org.eclipse.e4.primaryDataStack" selectedElement="_WVe4YIr_EfCREOHkX5JoqA">
+      <children xsi:type="basic:PartStack" xmi:id="_GtkvYYr_EfCREOHkX5JoqA" elementId="org.eclipse.e4.primaryDataStack">
         <tags>EditorStack</tags>
         <tags>org.eclipse.e4.primaryDataStack</tags>
-        <children xsi:type="basic:Part" xmi:id="_WVe4YIr_EfCREOHkX5JoqA" elementId="org.eclipse.e4.ui.compatibility.editor" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor" label="ConfigServerApplication.java" iconURI="platform:/plugin/org.eclipse.jdt.ui/icons/full/obj16/jcu_obj.svg" closeable="true">
-          <persistedState key="memento" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?>&#xD;&#xA;&lt;editor id=&quot;org.eclipse.jdt.ui.CompilationUnitEditor&quot; name=&quot;ConfigServerApplication.java&quot; partName=&quot;ConfigServerApplication.java&quot; title=&quot;ConfigServerApplication.java&quot; tooltip=&quot;config-server/src/main/java/com/musiclibrary/configserver/ConfigServerApplication.java&quot;>&#xD;&#xA;&lt;input factoryID=&quot;org.eclipse.ui.part.FileEditorInputFactory&quot; path=&quot;/config-server/src/main/java/com/musiclibrary/configserver/ConfigServerApplication.java&quot;/>&#xD;&#xA;&lt;editorState selectionHorizontalPixel=&quot;0&quot; selectionLength=&quot;0&quot; selectionOffset=&quot;0&quot; selectionTopPixel=&quot;0&quot;/>&#xD;&#xA;&lt;/editor>"/>
-          <tags>Editor</tags>
-          <tags>removeOnHide</tags>
-          <tags>org.eclipse.jdt.ui.CompilationUnitEditor</tags>
-        </children>
       </children>
     </sharedElements>
     <sharedElements xsi:type="basic:Part" xmi:id="_GtvHcIr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.navigator.ProjectExplorer" contributionURI="bundleclass://org.eclipse.ui.workbench/org.eclipse.ui.internal.e4.compatibility.CompatibilityView" label="Project Explorer" iconURI="platform:/plugin/org.eclipse.ui.navigator.resources/icons/full/eview16/resource_persp.svg" tooltip="" closeable="true">
@@ -460,7 +454,7 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf7U8Ir_EfCREOHkX5JoqA" elementId="org.eclipse.ui.workbench.file">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_UgsV8I6tEfCOVoe_JUqWKQ" elementId="print" visible="false" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/print_edit.svg" tooltip="Print" command="_F9bt94r_EfCREOHkX5JoqA"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_EdOOoI_nEfCOkax9JvHJYQ" elementId="print" visible="false" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/print_edit.svg" tooltip="Print" command="_F9bt94r_EfCREOHkX5JoqA"/>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf7U8Yr_EfCREOHkX5JoqA" elementId="group.edit" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -468,8 +462,8 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf7U84r_EfCREOHkX5JoqA" elementId="org.eclipse.ui.workbench.edit">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_UguLII6tEfCOVoe_JUqWKQ" elementId="undo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/undo_edit.svg" tooltip="Undo" enabled="false" command="_F9U_jIr_EfCREOHkX5JoqA"/>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_UguLIY6tEfCOVoe_JUqWKQ" elementId="redo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/redo_edit.svg" tooltip="Redo" enabled="false" command="_F9bsaIr_EfCREOHkX5JoqA"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_EdO1sI_nEfCOkax9JvHJYQ" elementId="undo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/undo_edit.svg" tooltip="Undo" enabled="false" command="_F9U_jIr_EfCREOHkX5JoqA"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_EdPcwI_nEfCOkax9JvHJYQ" elementId="redo" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/redo_edit.svg" tooltip="Redo" enabled="false" command="_F9bsaIr_EfCREOHkX5JoqA"/>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf78AIr_EfCREOHkX5JoqA" elementId="additions" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -484,7 +478,7 @@
       <children xsi:type="menu:ToolBar" xmi:id="_Gu16sIr_EfCREOHkX5JoqA" elementId="org.eclipse.search.searchActionSet">
         <tags>Draggable</tags>
       </children>
-      <children xsi:type="menu:ToolBar" xmi:id="_O-fcsIr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.edit.text.actionSet.presentation">
+      <children xsi:type="menu:ToolBar" xmi:id="_O-fcsIr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.edit.text.actionSet.presentation" visible="false">
         <tags>Draggable</tags>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_GuswwIr_EfCREOHkX5JoqA" elementId="org.eclipse.wst.server.ui.internal.webbrowser.actionSet">
@@ -499,7 +493,10 @@
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf78BIr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.workbench.navigate">
         <tags>Draggable</tags>
-        <children xsi:type="menu:HandledToolItem" xmi:id="_UgxOcI6tEfCOVoe_JUqWKQ" elementId="org.eclipse.ui.window.pinEditor" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/pin_editor.svg" tooltip="Pin Editor" type="Check" command="_F9btlor_EfCREOHkX5JoqA"/>
+        <children xsi:type="menu:HandledToolItem" xmi:id="_EdQq4I_nEfCOkax9JvHJYQ" elementId="org.eclipse.ui.window.pinEditor" iconURI="platform:/plugin/org.eclipse.ui/icons/full/etool16/pin_editor.svg" tooltip="Pin Editor" enabled="false" type="Check" command="_F9btlor_EfCREOHkX5JoqA"/>
+      </children>
+      <children xsi:type="menu:ToolBar" xmi:id="_2GxZYI_ZEfCu6fRCt2PLEQ" elementId="org.eclipse.jdt.ui.CompilationUnitEditor" visible="false">
+        <tags>Draggable</tags>
       </children>
       <children xsi:type="menu:ToolBar" xmi:id="_Gf78BYr_EfCREOHkX5JoqA" elementId="group.editor" toBeRendered="false">
         <tags>toolbarSeparator</tags>
@@ -538,8 +535,21 @@
         <tags>TrimStack</tags>
         <tags>Draggable</tags>
       </children>
+      <children xsi:type="menu:ToolControl" xmi:id="_I4k_oI_nEfCOkax9JvHJYQ" elementId="topLeft(IDEWindow).(org.eclipse.jst.j2ee.J2EEPerspective)" toBeRendered="false" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.TrimStack">
+        <tags>TrimStack</tags>
+        <tags>Draggable</tags>
+      </children>
     </trimBars>
-    <trimBars xmi:id="_F8hs-Yr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.trim.vertical2" contributorURI="platform:/plugin/org.eclipse.platform" side="Right"/>
+    <trimBars xmi:id="_F8hs-Yr_EfCREOHkX5JoqA" elementId="org.eclipse.ui.trim.vertical2" contributorURI="platform:/plugin/org.eclipse.platform" toBeRendered="false" side="Right">
+      <children xsi:type="menu:ToolControl" xmi:id="_I5aGEI_nEfCOkax9JvHJYQ" elementId="topRight(IDEWindow).(org.eclipse.jst.j2ee.J2EEPerspective)" toBeRendered="false" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.TrimStack">
+        <tags>TrimStack</tags>
+        <tags>Draggable</tags>
+      </children>
+      <children xsi:type="menu:ToolControl" xmi:id="_I5m6YI_nEfCOkax9JvHJYQ" elementId="bottomRight(IDEWindow).(org.eclipse.jst.j2ee.J2EEPerspective)" toBeRendered="false" contributionURI="bundleclass://org.eclipse.e4.ui.workbench.addons.swt/org.eclipse.e4.ui.workbench.addons.minmax.TrimStack">
+        <tags>TrimStack</tags>
+        <tags>Draggable</tags>
+      </children>
+    </trimBars>
   </children>
   <bindingTables xmi:id="_F8hs-or_EfCREOHkX5JoqA" contributorURI="platform:/plugin/org.eclipse.platform" bindingContext="_F8hs-4r_EfCREOHkX5JoqA">
     <bindings xmi:id="_F-ATpYr_EfCREOHkX5JoqA" keySequence="CTRL+1" command="_F9U_PYr_EfCREOHkX5JoqA"/>

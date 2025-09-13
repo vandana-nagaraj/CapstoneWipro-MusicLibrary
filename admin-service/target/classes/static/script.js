@@ -52,17 +52,19 @@ const homeTitle = document.getElementById('homeTitle');
 const homeSubtitle = document.getElementById('homeSubtitle');
 const homeCta = document.getElementById('homeCta');
 const adminLink = document.getElementById('adminLink');
+const createSongLink = document.getElementById('createSongLink');
 
 function updateNavbar() {
     if (currentUserEmail) {
         if (authLinks) authLinks.classList.add('hidden');
         if (profileArea) profileArea.classList.remove('hidden');
         const isAdmin = currentUserType === 'admin';
-        const nameDisplay = isAdmin ? 'Admin' : (currentUserName || 'User');
+        const nameDisplay = isAdmin ? (currentAdminName || 'Admin') : (currentUserName || 'User');
         if (profileName) profileName.textContent = nameDisplay;
-        if (profileRole) profileRole.textContent = isAdmin ? 'Admin' : 'User';
+        if (profileRole) profileRole.textContent = isAdmin ? 'Administrator' : 'User';
         if (profileAvatar) profileAvatar.textContent = nameDisplay.charAt(0).toUpperCase();
-        if (adminLink) adminLink.classList.add('hidden'); // remove extra admin navigator
+        if (adminLink) adminLink.classList.toggle('hidden', !isAdmin);
+        if (createSongLink) createSongLink.classList.toggle('hidden', !isAdmin);
         const playlistsNav = document.querySelector('a[href="#playlists"]');
         if (playlistsNav) {
             if (isAdmin) playlistsNav.classList.add('hidden'); else playlistsNav.classList.remove('hidden');
@@ -71,6 +73,7 @@ function updateNavbar() {
         if (authLinks) authLinks.classList.remove('hidden');
         if (profileArea) profileArea.classList.add('hidden');
         if (adminLink) adminLink.classList.add('hidden');
+        if (createSongLink) createSongLink.classList.add('hidden');
     }
 }
 
@@ -113,6 +116,17 @@ function showSection(sectionName) {
 function showLogin() { showSection('login'); if (forms.login) { forms.login.reset(); } }
 function showRegister() { showSection('register'); if (forms.register) { forms.register.reset(); } }
 function showSongs() { showSection('songs'); loadSongs(); }
+function showCreateSong() {
+    if (currentUserType !== 'admin') {
+        showMessage('Unauthorized: Admin access required', 'error');
+        return;
+    }
+    showSection('adminPanel');
+    // Automatically open the song form for creating a new song
+    setTimeout(() => {
+        showSongForm();
+    }, 100);
+}
 function showPlaylists() { 
     showSection('playlists'); 
     if (currentUserEmail) {
@@ -141,6 +155,7 @@ function routeByHash() {
     if (hash === 'songs') { showSongs(); }
     else if (hash === 'playlists') { showPlaylists(); }
     else if (hash === 'adminPanel') { showAdminPanel(); }
+    else if (hash === 'createSong') { showCreateSong(); }
     else if (hash === 'login') { showLogin(); }
     else if (hash === 'register') { showRegister(); }
     else { showSection('home'); }
@@ -166,6 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target === 'songs') { showSongs(); }
             else if (target === 'playlists') { showPlaylists(); }
             else if (target === 'adminPanel') { showAdminPanel(); }
+            else if (target === 'createSong') { showCreateSong(); }
             else { showSection(target); }
         });
     });
@@ -289,7 +305,14 @@ async function handleLogin(e) {
                 showAdminPanel();
             }
         } else {
-            const response = await fetch(`${API_BASE_URL}/auth/login?email=${formData.get('email')}&password=${formData.get('password')}`, { method: 'POST' });
+            console.log('Attempting user login for:', email);
+            const response = await fetch(`${API_BASE_URL}/api/users/authenticate?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
             if (response.ok) {
                 const body = await response.json();
                 authToken = body.token || null;
@@ -300,7 +323,8 @@ async function handleLogin(e) {
                 console.log('User login successful:', { 
                     email: currentUserEmail, 
                     userType: currentUserType, 
-                    tokenReceived: authToken ? 'Yes' : 'No' 
+                    tokenReceived: authToken ? 'Yes' : 'No',
+                    tokenPrefix: authToken ? authToken.substring(0, 10) + '...' : 'None'
                 });
                 
                 showMessage('Login successful!', 'success');
@@ -310,8 +334,9 @@ async function handleLogin(e) {
                 personalizeHome();
                 showSongs();
             } else {
-                console.error('User login failed:', response.status);
-                showMessage('Invalid credentials!', 'error');
+                const errorText = await response.text();
+                console.error('User login failed:', response.status, errorText);
+                showMessage(`Login failed: ${errorText || 'Invalid credentials'}`, 'error');
             }
         }
     } catch (error) {
@@ -551,6 +576,12 @@ function showCreatePlaylist() {
         showMessage('Please login to create playlists', 'error');
         return;
     }
+    
+    // Ensure users can create playlists (not just admins)
+    if (currentUserType !== 'user' && currentUserType !== 'admin') {
+        showMessage('Please login as a user to create playlists', 'error');
+        return;
+    }
 
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -700,8 +731,8 @@ async function addToPlaylist(songId, songName) {
     }
     
     // Allow both users and admins to add songs to playlists
-    if (currentUserType !== 'user' && currentUserType !== 'admin') {
-        showMessage('Please login as a user to add songs to playlists.', 'error');
+    if (!currentUserType || (currentUserType !== 'user' && currentUserType !== 'admin')) {
+        showMessage('Please login to add songs to playlists.', 'error');
         return;
     }
     
@@ -714,7 +745,7 @@ async function addToPlaylist(songId, songName) {
     try {
         console.log('Starting addToPlaylist:', { songId, songName, currentUserEmail, currentUserType });
         
-        const userResponse = await fetch(`${USER_API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
+        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { 
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
@@ -807,7 +838,7 @@ async function confirmAddToPickedPlaylist() {
             console.log('User service health check:', healthCheck.status);
         } catch (healthError) {
             console.error('User service appears to be down:', healthError);
-            showMessage('User service is not running. Please start the user-service on port 8081.', 'error');
+            showMessage('User service is not running. Please start the user-service on port 9002.', 'error');
             return;
         }
         
@@ -815,7 +846,8 @@ async function confirmAddToPickedPlaylist() {
         console.log('Full API URL:', fullUrl);
         
         const requestBody = {
-            songId: playlistPickContext.songId
+            songId: playlistPickContext.songId,
+            songName: playlistPickContext.songName
         };
         
         const response = await fetch(fullUrl, { 
@@ -853,7 +885,7 @@ async function confirmAddToPickedPlaylist() {
     } catch (error) { 
         console.error('Error in confirmAddToPickedPlaylist:', error);
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            showMessage('Cannot connect to user service. Please ensure user-service is running on port 8081.', 'error');
+            showMessage('Cannot connect to user service. Please ensure user-service is running on port 9002.', 'error');
         } else {
             showMessage(`Network error: ${error.message}`, 'error'); 
         }
@@ -867,7 +899,7 @@ async function searchMyPlaylists() {
     if (!query) { loadPlaylists(); return; }
     playlistsList.innerHTML = '<div class="loading"></div>';
     try {
-        const userResponse = await fetch(`${USER_API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
+        const userResponse = await fetch(`${API_BASE_URL}/api/users/email/${currentUserEmail}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
         if (!userResponse.ok) { playlistsList.innerHTML = '<p>User not found</p>'; return; }
         const user = await userResponse.json();
         const response = await fetch(`${API_BASE_URL}/api/playlists/user/${user.id}/search?name=${encodeURIComponent(query)}`, { headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {} });
@@ -1382,7 +1414,6 @@ async function loadAdminSongs() {
                 <div class="no-songs">
                     <i class="fas fa-music" style="font-size: 3rem; color: #95a5a6; margin-bottom: 1rem;"></i>
                     <h3>No songs found</h3>
-                    <p>Click the "Add New Song" button to get started.</p>
                 </div>`;
             return;
         }
@@ -1390,9 +1421,6 @@ async function loadAdminSongs() {
         list.innerHTML = `
             <div class="admin-songs-header">
                 <h2>Manage Songs</h2>
-                <button class="btn btn-primary" onclick="showSongForm()">
-                    <i class="fas fa-plus"></i> Add New Song
-                </button>
             </div>
             <div class="songs-grid">
                 ${songs.map(s => `
@@ -1406,10 +1434,10 @@ async function loadAdminSongs() {
                                 <button class="btn-icon" onclick="deleteSong(${s.id}, event)" title="Delete">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                <button class="btn-icon ${s.visible ? 'active' : ''}" 
+                                <button class="btn-icon ${s.isVisible ? 'active' : ''}" 
                                         onclick="toggleVisibility(${s.id}, event)" 
-                                        title="${s.visible ? 'Visible' : 'Hidden'}">
-                                    <i class="fas ${s.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                                        title="${s.isVisible ? 'Visible' : 'Hidden'}">
+                                    <i class="fas ${s.isVisible ? 'fa-eye' : 'fa-eye-slash'}"></i>
                                 </button>
                             </div>
                         </div>
@@ -1419,8 +1447,8 @@ async function loadAdminSongs() {
                             <p><strong>Album:</strong> ${escapeHtml(s.albumName || 'N/A')}</p>
                             <p><strong>Release Date:</strong> ${s.releaseDate ? new Date(s.releaseDate).toLocaleDateString() : 'N/A'}</p>
                             <p><strong>Status:</strong> 
-                                <span class="badge ${s.visible ? 'badge-success' : 'badge-warning'}">
-                                    ${s.visible ? 'Visible' : 'Hidden'}
+                                <span class="badge ${s.isVisible ? 'badge-success' : 'badge-warning'}">
+                                    ${s.isVisible ? 'Visible' : 'Hidden'}
                                 </span>
                             </p>
                         </div>
@@ -1461,7 +1489,8 @@ function showSongForm(id) {
         // Create mode - clear form and show modal
         form.reset();
         // Ensure visibility checkbox is checked by default for new songs
-        document.getElementById('songVisible').checked = true;
+        const visibilityCheckbox = document.getElementById('songVisible');
+        if (visibilityCheckbox) visibilityCheckbox.checked = true;
         document.getElementById('songFormTitle').textContent = 'Add New Song';
         modal.classList.remove('hidden');
     }
@@ -1492,6 +1521,10 @@ async function loadSongForEditing(id) {
         document.getElementById('songAlbum').value = song.albumName || '';
         document.getElementById('songRelease').value = song.releaseDate ? song.releaseDate.split('T')[0] : '';
         document.getElementById('songDuration').value = song.durationMinutes || '';
+        
+        // Set visibility checkbox
+        const visibilityCheckbox = document.getElementById('songVisible');
+        if (visibilityCheckbox) visibilityCheckbox.checked = song.isVisible !== false;
         
     } catch (error) {
         console.error('Error loading song for editing:', error);
@@ -1543,7 +1576,7 @@ async function submitSongForm(e) {
         albumName: document.getElementById('songAlbum').value.trim(),
         releaseDate: document.getElementById('songRelease').value || null,
         durationMinutes: parseInt(document.getElementById('songDuration').value || '0', 10),
-        isVisible: true
+        isVisible: document.getElementById('songVisible') ? document.getElementById('songVisible').checked : true
     };
     
     const id = document.getElementById('songId').value;
@@ -1564,7 +1597,14 @@ async function submitSongForm(e) {
         if (res.ok) {
             const result = await res.json();
             showMessage(`Song ${id ? 'updated' : 'created'} successfully!`, 'success');
-            resetSongForm(); 
+            
+            // Create notification for new song
+            if (!id) {
+                createSongNotification(result);
+            }
+            
+            resetSongForm();
+            closeSongForm();
             await loadAdminSongs(); 
             loadSongs();
         } else {
@@ -1879,7 +1919,7 @@ function updateAdminStats() {
     .then(response => response.json())
     .then(songs => {
         document.getElementById('totalSongs').textContent = songs.length;
-        document.getElementById('visibleSongs').textContent = songs.filter(s => s.visible).length;
+        document.getElementById('visibleSongs').textContent = songs.filter(s => s.isVisible).length;
     })
     .catch(error => console.error('Error loading stats:', error));
     
@@ -1919,7 +1959,8 @@ function editSong(songId) {
         document.getElementById('songRelease').value = song.releaseDate || '';
         document.getElementById('songDuration').value = song.durationMinutes || '';
         document.getElementById('songGenre').value = song.genre || '';
-        document.getElementById('songVisible').checked = song.isVisible !== false;
+        const visibilityCheckbox = document.getElementById('songVisible');
+        if (visibilityCheckbox) visibilityCheckbox.checked = song.isVisible !== false;
         document.getElementById('songId').value = songId;
         
         // Update modal title
@@ -2049,17 +2090,45 @@ function sendNotification() {
 }
 
 function loadNotificationHistory() {
-    fetch(`${ADMIN_API_BASE_URL}/api/notifications/history`, {
+    const container = document.getElementById('notificationsList');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Loading notifications...</div>';
+    
+    // Try to load from notification service, fallback to mock data if service unavailable
+    fetch(`http://localhost:9003/api/notifications/history`, {
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
         credentials: 'include'
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Notification service unavailable');
+        return response.json();
+    })
     .then(notifications => {
         displayNotifications(notifications);
     })
     .catch(error => {
-        console.error('Error loading notifications:', error);
-        document.getElementById('notificationsList').innerHTML = '<p>No notifications found</p>';
+        console.log('Notification service unavailable, showing mock data:', error);
+        // Show mock notifications to demonstrate functionality
+        const mockNotifications = [
+            {
+                id: 1,
+                title: 'New Song Added',
+                message: 'A new song has been added to the library',
+                type: 'SONG_ADDED',
+                timestamp: new Date().toISOString(),
+                read: false
+            },
+            {
+                id: 2,
+                title: 'System Notification',
+                message: 'Welcome to the Music Library Admin Panel',
+                type: 'SYSTEM',
+                timestamp: new Date(Date.now() - 3600000).toISOString(),
+                read: true
+            }
+        ];
+        displayNotifications(mockNotifications);
     });
 }
 
@@ -2067,25 +2136,41 @@ function displayNotifications(notifications) {
     const container = document.getElementById('notificationsList');
     
     if (!notifications || notifications.length === 0) {
-        container.innerHTML = '<p>No notifications sent yet</p>';
+        container.innerHTML = '<div class="no-notifications"><i class="fas fa-bell-slash"></i><p>No notifications yet</p></div>';
         return;
     }
     
     container.innerHTML = notifications.map(notification => `
-        <div class="notification-item">
+        <div class="notification-item ${notification.read ? 'read' : 'unread'}">
+            <div class="notification-icon">
+                <i class="fas ${getNotificationIcon(notification.type)}"></i>
+            </div>
             <div class="notification-content">
-                <h4>${escapeHtml(notification.title)}</h4>
-                <p>${escapeHtml(notification.message)}</p>
+                <h4>${escapeHtml(notification.title || 'Notification')}</h4>
+                <p>${escapeHtml(notification.message || 'No message')}</p>
                 <div class="notification-meta">
-                    Type: ${notification.type} | Sent: ${new Date(notification.timestamp).toLocaleString()}
+                    <span class="notification-type">${notification.type || 'GENERAL'}</span>
+                    <span class="notification-time">${new Date(notification.timestamp).toLocaleString()}</span>
                 </div>
             </div>
+            ${!notification.read ? '<div class="notification-badge"></div>' : ''}
         </div>
     `).join('');
 }
 
+function getNotificationIcon(type) {
+    switch(type) {
+        case 'SONG_ADDED': return 'fa-music';
+        case 'USER_REGISTERED': return 'fa-user-plus';
+        case 'SYSTEM': return 'fa-cog';
+        case 'WARNING': return 'fa-exclamation-triangle';
+        case 'ERROR': return 'fa-exclamation-circle';
+        default: return 'fa-bell';
+    }
+}
+
 function loadUsers() {
-    fetch(`${API_BASE_URL}/api/users`, {
+    fetch(`http://localhost:9002/api/users`, {
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
         credentials: 'include'
     })
@@ -2134,6 +2219,30 @@ function searchUsers() {
         console.error('Error searching users:', error);
         loadUsers(); // Fallback to loading all users
     });
+}
+
+// Create notification when a new song is added
+function createSongNotification(song) {
+    try {
+        // Try to send to notification service
+        fetch('http://localhost:9003/api/notifications', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+            },
+            body: JSON.stringify({
+                title: 'New Song Added',
+                message: `"${song.name}" by ${song.singer} has been added to the library`,
+                type: 'SONG_ADDED',
+                timestamp: new Date().toISOString()
+            })
+        }).catch(error => {
+            console.log('Notification service unavailable:', error);
+        });
+    } catch (error) {
+        console.log('Failed to create notification:', error);
+    }
 }
 
 // Logout function
